@@ -11,72 +11,81 @@
  *      props.onChange + props.editorState → create new EditorState via
  *      Draft.js API → call onChange to trigger React re-render.
  *
- * Serialized by chrome.scripting.executeScript({ func, args, world: "MAIN" }).
- * Must be self-contained — no closure references to module scope.
+ * IMPORTANT: This function is serialized by chrome.scripting.executeScript()
+ * with { func, world: "MAIN" }. Chrome's func serialization calls .toString()
+ * on the function. After Parcel bundling, async/await may be transpiled into
+ * generator-based state machines that reference module-scoped helpers.
+ *
+ * To avoid serialization issues:
+ *   - NO async/await — use raw Promise chains
+ *   - ALL helpers defined inline within the function body
+ *   - NO closure references to module scope or imports
+ *   - Only use global APIs (document, console, Object, etc.)
  */
 export function zhihuInject(title: string, body: string): void {
   const TIMEOUT = 15000
   const INTERVAL = 200
 
-  async function pollForElement(selector: string): Promise<Element> {
-    const start = performance.now()
-    while (performance.now() - start < TIMEOUT) {
-      const el = document.querySelector(selector)
-      if (el) return el
-      await new Promise((r) => setTimeout(r, INTERVAL))
-    }
-    throw new Error(
-      'Element "' + selector + '" not found after ' + TIMEOUT + 'ms'
-    )
+  function pollForElement(selector: string): Promise<Element> {
+    return new Promise(function (resolve, reject) {
+      const start = performance.now()
+      function check() {
+        if (performance.now() - start >= TIMEOUT) {
+          reject(new Error('Element "' + selector + '" not found after ' + TIMEOUT + 'ms'))
+          return
+        }
+        const el = document.querySelector(selector)
+        if (el) { resolve(el); return }
+        setTimeout(check, INTERVAL)
+      }
+      check()
+    })
   }
 
-  /**
-   * Fill a <TEXTAREA> or <input> with value using native setter.
-   * Bypasses React's synthetic event system so the controlled component
-   * picks up the value change.
-   */
   function fillInputValue(el: HTMLTextAreaElement | HTMLInputElement, value: string): void {
-    const proto = el instanceof HTMLTextAreaElement
-      ? HTMLTextAreaElement.prototype
-      : HTMLInputElement.prototype
+    const proto =
+      el instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype
     const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')!.set!
     nativeSetter.call(el, value)
     el.dispatchEvent(new Event('input', { bubbles: true }))
     el.dispatchEvent(new Event('change', { bubbles: true }))
   }
 
-  /**
-   * Fill Draft.js editor via React fiber + Draft.js API.
-   * Finds the component holding editorState + onChange, creates new state,
-   * and triggers React re-render.
-   */
   function fillDraftEditor(editorEl: HTMLElement, text: string): void {
-    // Find React fiber key on the DOM node
-    const fiberKey = Object.keys(editorEl).find((k) => k.startsWith('__reactFiber'))
+    const fiberKey = Object.keys(editorEl).find(function (k) {
+      return k.indexOf('__reactFiber') === 0
+    })
     if (!fiberKey) throw new Error('No React fiber found on Draft.js editor')
 
-    // Walk up fiber tree to find component with editorState + onChange
     let fiber: any = (editorEl as any)[fiberKey]
     let found = false
 
     while (fiber && !found) {
       const sn = fiber.stateNode
-      if (sn && typeof sn.props === 'object' && typeof sn.props.onChange === 'function') {
-        const es = sn.props.editorState || (sn.state && sn.state.editorState)
+      if (
+        sn &&
+        typeof sn.props === 'object' &&
+        typeof sn.props.onChange === 'function'
+      ) {
+        const es =
+          sn.props.editorState || (sn.state && sn.state.editorState)
         if (!es || typeof es.getCurrentContent !== 'function') {
           fiber = fiber.return
           continue
         }
 
-        // Get Draft.js constructors from the live instance
         const EditorState = Object.getPrototypeOf(es).constructor
         const ContentState = es.getCurrentContent().constructor
 
-        // Create new editor state from plain text
         const newContent = ContentState.createFromText(text)
-        const newState = EditorState.push(es, newContent, 'insert-characters')
+        const newState = EditorState.push(
+          es,
+          newContent,
+          'insert-characters'
+        )
 
-        // Trigger React re-render
         sn.props.onChange(newState)
         found = true
         console.log('[CrossPost] Editor filled via Draft.js API')
@@ -87,26 +96,33 @@ export function zhihuInject(title: string, body: string): void {
     if (!found) throw new Error('Could not find Draft.js onChange handler')
   }
 
-  // Main injection flow
-  ;(async () => {
-    try {
-      // Step 1: Fill title TEXTAREA
-      if (title) {
-        // Use partial attribute match for robustness against placeholder text changes
-        const titleEl = await pollForElement('textarea[placeholder*="请输入标题"]')
-        fillInputValue(titleEl as HTMLTextAreaElement, title)
-        console.log('[CrossPost] Title filled')
-      }
+  // === Main flow (Promise chain, NO async/await) ===
+  pollForElement('.public-DraftEditor-content')
+    .then(function (editorEl) {
+      const el = editorEl as HTMLElement
 
-      // Step 2: Fill Draft.js body editor
+      // Fill body via Draft.js API
       if (body) {
-        const editorEl = await pollForElement('.public-DraftEditor-content')
-        fillDraftEditor(editorEl as HTMLElement, body)
+        fillDraftEditor(el, body)
       }
 
+      // Fill title if present
+      if (title) {
+        return pollForElement('textarea[placeholder*="请输入标题"]').then(
+          function (titleEl) {
+            fillInputValue(titleEl as HTMLTextAreaElement, title)
+            console.log('[CrossPost] Title filled')
+          }
+        )
+      }
+    })
+    .then(function () {
       console.log('[CrossPost] Injection complete')
-    } catch (err: any) {
-      console.error('[CrossPost] Injection failed:', err.message || err)
-    }
-  })()
+    })
+    .catch(function (err: any) {
+      console.error(
+        '[CrossPost] Injection failed:',
+        err && err.message ? err.message : String(err)
+      )
+    })
 }

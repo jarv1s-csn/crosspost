@@ -40,10 +40,12 @@ export class ZhihuAdapter implements IPlatformAdapter {
 
         const tabId = tab.id
 
-        chrome.tabs.onUpdated.addListener(function listener(updatedTabId, info) {
-          if (updatedTabId !== tabId || info.status !== "complete") return
+        // Guards against double-injection if both race paths fire
+        let injected = false
 
-          chrome.tabs.onUpdated.removeListener(listener)
+        const doInject = () => {
+          if (injected) return
+          injected = true
 
           chrome.scripting.executeScript(
             {
@@ -67,6 +69,22 @@ export class ZhihuAdapter implements IPlatformAdapter {
               }
             }
           )
+        }
+
+        // Path A: tab already loaded (cache hit, fast network, etc.)
+        if (tab.status === "complete") {
+          doInject()
+          return
+        }
+
+        // Path B: wait for tab to finish loading
+        chrome.tabs.onUpdated.addListener(function listener(
+          updatedTabId: number,
+          info: { status?: string }
+        ) {
+          if (updatedTabId !== tabId || info.status !== "complete") return
+          chrome.tabs.onUpdated.removeListener(listener)
+          doInject()
         })
       })
     })
