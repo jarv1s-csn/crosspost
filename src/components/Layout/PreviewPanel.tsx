@@ -4,6 +4,8 @@ import type { PlatformDraft, PlatformKey } from "../../types"
 interface PreviewPanelProps {
   results: Partial<Record<PlatformKey, PlatformDraft>>
   error: string | null
+  onPublish: (platform: PlatformKey, draft: PlatformDraft) => void
+  publishMsg?: string | null
 }
 
 const PLATFORM_NAMES: Record<PlatformKey, string> = {
@@ -16,7 +18,15 @@ function formatDraft(draft: PlatformDraft): string {
   return `【标题】\n${draft.title}\n\n【正文】\n${draft.body}\n\n【标签】\n${draft.tags.join(" ")}`
 }
 
-function ResultCard({ platform, draft }: { platform: PlatformKey; draft: PlatformDraft }) {
+function ResultCard({
+  platform,
+  draft,
+  onPublish
+}: {
+  platform: PlatformKey
+  draft: PlatformDraft
+  onPublish: (platform: PlatformKey, draft: PlatformDraft) => void
+}) {
   const [label, setLabel] = useState("复制")
 
   function handleCopy() {
@@ -49,11 +59,16 @@ function ResultCard({ platform, draft }: { platform: PlatformKey; draft: Platfor
       <button className="copy-btn" onClick={handleCopy}>
         {label}
       </button>
+      {platform === "zhihu" && (
+        <button className="publish-btn" onClick={() => onPublish(platform, draft)}>
+          发布到知乎
+        </button>
+      )}
     </div>
   )
 }
 
-export function PreviewPanel({ results, error }: PreviewPanelProps) {
+export function PreviewPanel({ results, error, onPublish, publishMsg }: PreviewPanelProps) {
   const [copyAllLabel, setCopyAllLabel] = useState("一键复制全部")
 
   if (error) {
@@ -92,11 +107,14 @@ export function PreviewPanel({ results, error }: PreviewPanelProps) {
 
   return (
     <div className="panel panel-right">
+      {publishMsg && (
+        <div className="publish-status">{publishMsg}</div>
+      )}
       <button className="copy-all-btn" onClick={handleCopyAll}>
         {copyAllLabel}
       </button>
       {entries.map(([key, draft]) => (
-        <ResultCard key={key} platform={key} draft={draft} />
+        <ResultCard key={key} platform={key} draft={draft} onPublish={onPublish} />
       ))}
     </div>
   )
