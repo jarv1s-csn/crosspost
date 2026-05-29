@@ -1,15 +1,69 @@
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useEffect, useRef } from "react"
 import { TopBar } from "./TopBar"
 import { InputPanel } from "./InputPanel"
 import { PreviewPanel } from "./PreviewPanel"
 import { transformAllPlatforms } from "../../ai"
 import type { PlatformDraft, PlatformKey } from "../../types"
+import { saveApiKey, loadApiKey, saveDraft, loadDraft } from "../../storage"
 
 export function AppLayout() {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<Partial<Record<PlatformKey, PlatformDraft>>>({})
   const [error, setError] = useState<string | null>(null)
   const [apiKey, setApiKey] = useState("")
+  const [apiKeyLoaded, setApiKeyLoaded] = useState(false)
+
+  // Editor state (lifted from InputPanel)
+  const [title, setTitle] = useState("")
+  const [body, setBody] = useState("")
+  const [tags, setTags] = useState("")
+  const [draftLoaded, setDraftLoaded] = useState(false)
+
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Load saved data on mount
+  useEffect(() => {
+    loadApiKey().then((key) => {
+      if (key) setApiKey(key)
+      setApiKeyLoaded(true)
+    })
+    loadDraft().then((draft) => {
+      if (draft) {
+        setTitle(draft.title)
+        setBody(draft.body)
+        setTags(draft.tags)
+      }
+      setDraftLoaded(true)
+    })
+  }, [])
+
+  // Persist API key on change
+  useEffect(() => {
+    if (apiKeyLoaded && apiKey) {
+      saveApiKey(apiKey)
+    }
+  }, [apiKey, apiKeyLoaded])
+
+  // Auto-save draft (debounced 2s)
+  useEffect(() => {
+    if (!draftLoaded) return
+
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+    }
+
+    saveTimerRef.current = setTimeout(() => {
+      if (title || body || tags) {
+        saveDraft({ title, body, tags, updatedAt: Date.now() })
+      }
+    }, 2000)
+
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+      }
+    }
+  }, [title, body, tags, draftLoaded])
 
   const handleAiRewrite = useCallback(
     async (input: { title: string; body: string; tags: string[] }) => {
@@ -61,7 +115,16 @@ export function AppLayout() {
         </div>
       </TopBar>
       <div className="panels">
-        <InputPanel onAiRewrite={handleAiRewrite} loading={loading} />
+        <InputPanel
+          title={title}
+          body={body}
+          tags={tags}
+          onTitleChange={setTitle}
+          onBodyChange={setBody}
+          onTagsChange={setTags}
+          onAiRewrite={handleAiRewrite}
+          loading={loading}
+        />
         <PreviewPanel results={results} error={error} />
       </div>
     </div>

@@ -1,15 +1,26 @@
-import React, { useState } from "react"
+import React from "react"
 
 interface InputPanelProps {
+  title: string
+  body: string
+  tags: string
+  onTitleChange: (v: string) => void
+  onBodyChange: (v: string) => void
+  onTagsChange: (v: string) => void
   onAiRewrite: (data: { title: string; body: string; tags: string[] }) => void
   loading: boolean
 }
 
-export function InputPanel({ onAiRewrite, loading }: InputPanelProps) {
-  const [title, setTitle] = useState("")
-  const [body, setBody] = useState("")
-  const [tags, setTags] = useState("")
-
+export function InputPanel({
+  title,
+  body,
+  tags,
+  onTitleChange,
+  onBodyChange,
+  onTagsChange,
+  onAiRewrite,
+  loading
+}: InputPanelProps) {
   const handleRewrite = () => {
     if (!body.trim()) return
     onAiRewrite({
@@ -29,7 +40,7 @@ export function InputPanel({ onAiRewrite, loading }: InputPanelProps) {
         <input
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => onTitleChange(e.target.value)}
           placeholder="输入标题（可选）"
           className="title-input"
         />
@@ -38,7 +49,7 @@ export function InputPanel({ onAiRewrite, loading }: InputPanelProps) {
         <label>正文（Markdown）</label>
         <textarea
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => onBodyChange(e.target.value)}
           placeholder="输入你的内容..."
           className="content-textarea"
           rows={12}
@@ -49,7 +60,7 @@ export function InputPanel({ onAiRewrite, loading }: InputPanelProps) {
         <input
           type="text"
           value={tags}
-          onChange={(e) => setTags(e.target.value)}
+          onChange={(e) => onTagsChange(e.target.value)}
           placeholder="AI, 编程, 效率工具"
           className="title-input"
         />
