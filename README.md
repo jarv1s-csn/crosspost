@@ -32,7 +32,11 @@
 
 ## 开发流程
 
-（待补充）
+本项目使用 GitHub Flow。
+
+- 所有功能通过 Pull Request 合入 main 分支
+- PR 标题遵循 Conventional Commits 格式（feat: / fix: / chore: / docs:）
+- 合入时使用 Squash Merge，PR 描述作为 commit body
 
 ## 许可证
 
