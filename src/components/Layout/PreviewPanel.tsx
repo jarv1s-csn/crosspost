@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import type { PlatformDraft, PlatformKey } from "../../types"
 
 interface PreviewPanelProps {
@@ -12,7 +12,26 @@ const PLATFORM_NAMES: Record<PlatformKey, string> = {
   xiaohongshu: "小红书"
 }
 
+function formatDraft(draft: PlatformDraft): string {
+  return `【标题】\n${draft.title}\n\n【正文】\n${draft.body}\n\n【标签】\n${draft.tags.join(" ")}`
+}
+
 function ResultCard({ platform, draft }: { platform: PlatformKey; draft: PlatformDraft }) {
+  const [label, setLabel] = useState("复制")
+
+  function handleCopy() {
+    navigator.clipboard.writeText(formatDraft(draft)).then(
+      () => {
+        setLabel("✓ 已复制")
+        setTimeout(() => setLabel("复制"), 2000)
+      },
+      () => {
+        setLabel("复制失败")
+        setTimeout(() => setLabel("复制"), 2000)
+      }
+    )
+  }
+
   return (
     <div className="result-card">
       <h3 className="platform-label">{PLATFORM_NAMES[platform]}</h3>
@@ -27,11 +46,16 @@ function ResultCard({ platform, draft }: { platform: PlatformKey; draft: Platfor
           </span>
         ))}
       </div>
+      <button className="copy-btn" onClick={handleCopy}>
+        {label}
+      </button>
     </div>
   )
 }
 
 export function PreviewPanel({ results, error }: PreviewPanelProps) {
+  const [copyAllLabel, setCopyAllLabel] = useState("一键复制全部")
+
   if (error) {
     return (
       <div className="panel panel-right">
@@ -52,8 +76,25 @@ export function PreviewPanel({ results, error }: PreviewPanelProps) {
     )
   }
 
+  function handleCopyAll() {
+    const combined = entries.map(([, draft]) => formatDraft(draft)).join("\n\n══════════\n\n")
+    navigator.clipboard.writeText(combined).then(
+      () => {
+        setCopyAllLabel("✓ 已复制")
+        setTimeout(() => setCopyAllLabel("一键复制全部"), 2000)
+      },
+      () => {
+        setCopyAllLabel("复制失败")
+        setTimeout(() => setCopyAllLabel("一键复制全部"), 2000)
+      }
+    )
+  }
+
   return (
     <div className="panel panel-right">
+      <button className="copy-all-btn" onClick={handleCopyAll}>
+        {copyAllLabel}
+      </button>
       {entries.map(([key, draft]) => (
         <ResultCard key={key} platform={key} draft={draft} />
       ))}
