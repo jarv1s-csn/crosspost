@@ -107,7 +107,7 @@ body {
   box-sizing: border-box;
 }
 .ai-button {
-  width: 100%;
+  flex: 1;
   padding: 10px;
   background: #6366f1;
   color: white;
@@ -115,7 +115,6 @@ body {
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
-  margin-top: 4px;
 }
 .ai-button:disabled {
   background: #9ca3af;
@@ -205,3 +204,25 @@ body {
 }
 .publish-btn:hover { background: #4f46e5; }
 .publish-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+
+.button-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.publish-direct-btn {
+  flex: 1;
+  padding: 10px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.publish-direct-btn:hover { background: #059669; }
+.publish-direct-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
