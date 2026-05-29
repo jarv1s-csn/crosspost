@@ -1,28 +1,13 @@
 /**
  * Injection function for Zhihu article editor.
  *
- * Zhihu editor structure (verified 2026-05-29):
- *   - Title: standalone <TEXTAREA> with placeholder "请输入标题（最多 100 个字）"
- *   - Body:  Draft.js contenteditable (.public-DraftEditor-content)
+ * This function is serialized by chrome.scripting.executeScript({ func, world: "MAIN" }).
+ * MUST be self-contained — no closure references, no async/await (to avoid
+ * regenerator references after bundling), only use global APIs.
  *
- * Approach:
- *   1. Fill title TEXTAREA via native value setter + input/change events
- *   2. Walk React fiber tree from Draft.js DOM node → find component with
- *      props.onChange + props.editorState → create new EditorState via
- *      Draft.js API → call onChange to trigger React re-render.
- *
- * IMPORTANT: This function is serialized by chrome.scripting.executeScript()
- * with { func, world: "MAIN" }. Chrome's func serialization calls .toString()
- * on the function. After Parcel bundling, async/await may be transpiled into
- * generator-based state machines that reference module-scoped helpers.
- *
- * To avoid serialization issues:
- *   - NO async/await — use raw Promise chains
- *   - ALL helpers defined inline within the function body
- *   - NO closure references to module scope or imports
- *   - Only use global APIs (document, console, Object, etc.)
+ * Returns a diagnostic string to help debug injection failures.
  */
-export function zhihuInject(title: string, body: string): void {
+export function zhihuInject(title: string, body: string): Promise<string> {
   const TIMEOUT = 15000
   const INTERVAL = 200
 
@@ -31,38 +16,52 @@ export function zhihuInject(title: string, body: string): void {
       const start = performance.now()
       function check() {
         if (performance.now() - start >= TIMEOUT) {
-          reject(new Error('Element "' + selector + '" not found after ' + TIMEOUT + 'ms'))
+          reject(
+            new Error(
+              'Element "' + selector + '" not found after ' + TIMEOUT + 'ms'
+            )
+          )
           return
         }
         const el = document.querySelector(selector)
-        if (el) { resolve(el); return }
+        if (el) {
+          resolve(el)
+          return
+        }
         setTimeout(check, INTERVAL)
       }
       check()
     })
   }
 
-  function fillInputValue(el: HTMLTextAreaElement | HTMLInputElement, value: string): void {
+  function fillInputValue(
+    el: HTMLTextAreaElement | HTMLInputElement,
+    value: string
+  ): void {
     const proto =
       el instanceof HTMLTextAreaElement
         ? HTMLTextAreaElement.prototype
         : HTMLInputElement.prototype
-    const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')!.set!
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      proto,
+      'value'
+    )!.set!
     nativeSetter.call(el, value)
     el.dispatchEvent(new Event('input', { bubbles: true }))
     el.dispatchEvent(new Event('change', { bubbles: true }))
   }
 
-  function fillDraftEditor(editorEl: HTMLElement, text: string): void {
+  function fillDraftEditor(editorEl: HTMLElement, text: string): string {
     const fiberKey = Object.keys(editorEl).find(function (k) {
       return k.indexOf('__reactFiber') === 0
     })
-    if (!fiberKey) throw new Error('No React fiber found on Draft.js editor')
+    if (!fiberKey) return 'ERR: no React fiber on Draft.js element'
 
     let fiber: any = (editorEl as any)[fiberKey]
     let found = false
+    let depth = 0
 
-    while (fiber && !found) {
+    while (fiber && !found && depth < 50) {
       const sn = fiber.stateNode
       if (
         sn &&
@@ -73,11 +72,16 @@ export function zhihuInject(title: string, body: string): void {
           sn.props.editorState || (sn.state && sn.state.editorState)
         if (!es || typeof es.getCurrentContent !== 'function') {
           fiber = fiber.return
+          depth++
           continue
         }
 
         const EditorState = Object.getPrototypeOf(es).constructor
         const ContentState = es.getCurrentContent().constructor
+
+        if (typeof ContentState.createFromText !== 'function') {
+          return 'ERR: ContentState.createFromText not a function'
+        }
 
         const newContent = ContentState.createFromText(text)
         const newState = EditorState.push(
@@ -88,41 +92,60 @@ export function zhihuInject(title: string, body: string): void {
 
         sn.props.onChange(newState)
         found = true
-        console.log('[CrossPost] Editor filled via Draft.js API')
-      }
-      fiber = fiber.return
-    }
-
-    if (!found) throw new Error('Could not find Draft.js onChange handler')
-  }
-
-  // === Main flow (Promise chain, NO async/await) ===
-  pollForElement('.public-DraftEditor-content')
-    .then(function (editorEl) {
-      const el = editorEl as HTMLElement
-
-      // Fill body via Draft.js API
-      if (body) {
-        fillDraftEditor(el, body)
-      }
-
-      // Fill title if present
-      if (title) {
-        return pollForElement('textarea[placeholder*="请输入标题"]').then(
-          function (titleEl) {
-            fillInputValue(titleEl as HTMLTextAreaElement, title)
-            console.log('[CrossPost] Title filled')
-          }
+        console.log(
+          '[CrossPost] Draft.js filled at depth ' +
+            depth +
+            ', text length: ' +
+            text.length
         )
       }
-    })
-    .then(function () {
-      console.log('[CrossPost] Injection complete')
-    })
-    .catch(function (err: any) {
-      console.error(
-        '[CrossPost] Injection failed:',
-        err && err.message ? err.message : String(err)
-      )
-    })
+      fiber = fiber.return
+      depth++
+    }
+
+    return found ? 'OK' : 'ERR: onChange handler not found in fiber tree'
+  }
+
+  // === Main diagnostic flow ===
+  return new Promise(function (resolve) {
+    var log: string[] = []
+    log.push('START: title=' + (title ? title.length : 0) + ' body=' + (body ? body.length : 0))
+
+    pollForElement('.public-DraftEditor-content')
+      .then(function (editorEl) {
+        var el = editorEl as HTMLElement
+        log.push('FOUND: Draft.js editor')
+
+        if (body) {
+          var bodyResult = fillDraftEditor(el, body)
+          log.push('BODY: ' + bodyResult)
+        } else {
+          log.push('BODY: skipped (empty)')
+        }
+
+        if (title) {
+          return pollForElement(
+            'textarea[placeholder*="请输入标题"]'
+          ).then(function (titleEl) {
+            fillInputValue(titleEl as HTMLTextAreaElement, title)
+            log.push('TITLE: filled')
+            return log
+          })
+        } else {
+          log.push('TITLE: skipped (empty)')
+          return log
+        }
+      })
+      .then(function () {
+        log.push('DONE')
+        resolve(log.join(' | '))
+      })
+      .catch(function (err: any) {
+        log.push(
+          'ERROR: ' +
+            (err && err.message ? err.message : String(err))
+        )
+        resolve(log.join(' | '))
+      })
+  })
 }
