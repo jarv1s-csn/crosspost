@@ -1,7 +1,7 @@
 import type { IPlatformAdapter } from "../interface"
 import type { ContentInput, PlatformDraft, PreviewData, PlatformCredentials, PublishResult } from "../../types"
 import { formatZhihuContent } from "./formatter"
-import { zhihuInjectFunc } from "./inject"
+import { zhihuInject } from "./inject"
 
 export class ZhihuAdapter implements IPlatformAdapter {
   readonly displayName = "知乎"
@@ -48,7 +48,8 @@ export class ZhihuAdapter implements IPlatformAdapter {
           chrome.scripting.executeScript(
             {
               target: { tabId },
-              func: zhihuInjectFunc(draft.title, draft.body),
+              func: zhihuInject,
+              args: [draft.title, draft.body],
               world: "MAIN"
             },
             () => {

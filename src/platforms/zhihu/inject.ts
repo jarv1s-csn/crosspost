@@ -1,10 +1,4 @@
-/**
- * Injection function for Zhihu article editor.
- * Serialized by Chrome and injected via chrome.scripting.executeScript.
- * Everything must be inline — no external imports inside func body.
- */
-export function zhihuInjectFunc(title: string, body: string): () => void {
-  return () => {
+export function zhihuInject(title: string, body: string): void {
     const TIMEOUT = 15000
     const INTERVAL = 200
 
@@ -76,4 +70,3 @@ export function zhihuInjectFunc(title: string, body: string): () => void {
       }
     })()
   }
-}
