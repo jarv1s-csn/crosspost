@@ -1,11 +1,9 @@
 import React from "react"
+import "./src/styles/global.css"
+import { AppLayout } from "./src/components/Layout/AppLayout"
 
 function IndexPopup() {
-  return (
-    <div style={{ padding: 16, minWidth: 200 }}>
-      <h2>CrossPost</h2>
-    </div>
-  )
+  return <AppLayout />
 }
 
 export default IndexPopup
