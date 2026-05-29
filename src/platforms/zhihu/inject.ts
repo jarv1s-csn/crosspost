@@ -1,10 +1,7 @@
 /**
  * Injection function for Zhihu article editor (Draft.js based).
- * Serialized by Chrome and injected via chrome.scripting.executeScript.
- * 
- * KEY FINDING: Zhihu editor uses a SINGLE Draft.js contenteditable div
- * for both title and body. There is NO separate title input element.
- * The title is the first line of text, body follows after a blank line.
+ * Tested working approach: find React fiber → walk to component with onChange →
+ * create new EditorState via Draft.js API → call onChange to trigger re-render.
  */
 export function zhihuInject(title: string, body: string): void {
   const TIMEOUT = 15000
@@ -17,61 +14,53 @@ export function zhihuInject(title: string, body: string): void {
       if (el) return el
       await new Promise((r) => setTimeout(r, INTERVAL))
     }
-    throw new Error(
-      'Element "' + selector + '" not found after ' + TIMEOUT + "ms"
-    )
+    throw new Error('Selector "' + selector + '" not found after ' + TIMEOUT + 'ms')
   }
 
-  /**
-   * Fill a Draft.js contenteditable editor.
-   * Draft.js intercepts native editing commands, so we:
-   * 1. Focus the editor
-   * 2. Select all existing content
-   * 3. Use execCommand('insertText') which Draft.js captures
-   * 4. Dispatch events to sync Draft.js internal state
-   */
-  function fillDraftEditor(element: HTMLElement, text: string): void {
-    element.focus()
-
-    // Select all existing content
-    const range = document.createRange()
-    range.selectNodeContents(element)
-    const sel = window.getSelection()
-    if (sel) {
-      sel.removeAllRanges()
-      sel.addRange(range)
-    }
-
-    // Use insertText — Draft.js captures this via handleBeforeInput
-    // Split into chunks if text is very long (Draft.js has paste limits)
-    const CHUNK_SIZE = 2000
-    for (let i = 0; i < text.length; i += CHUNK_SIZE) {
-      const chunk = text.slice(i, i + CHUNK_SIZE)
-      document.execCommand("insertText", false, chunk)
-    }
-
-    // Dispatch events so Draft.js commits its internal state
-    element.dispatchEvent(new Event("input", { bubbles: true }))
-    element.dispatchEvent(new Event("change", { bubbles: true }))
-    element.dispatchEvent(
-      new CompositionEvent("compositionend", { data: text, bubbles: true })
-    )
-  }
-
-  // Main injection flow
   ;(async () => {
     try {
-      // Zhihu has one Draft.js editor for both title + body
-      const editorEl = await pollForElement(".public-DraftEditor-content")
+      const editorEl = await pollForElement('.public-DraftEditor-content')
+      const el = editorEl as HTMLElement
 
-      // Title goes on first line, blank line, then body
-      const content = title ? title + "\n\n" + body : body
+      // Find React fiber key
+      const fiberKey = Object.keys(el).find((k) => k.startsWith('__reactFiber'))
+      if (!fiberKey) throw new Error('No React fiber found')
 
-      fillDraftEditor(editorEl as HTMLElement, content)
+      // Walk up fiber tree to find component with props.onChange
+      let fiber: any = (el as any)[fiberKey]
+      let found = false
 
-      console.log("[CrossPost] Editor filled successfully")
-    } catch (err) {
-      console.error("[CrossPost] Injection failed:", err)
+      while (fiber && !found) {
+        const sn = fiber.stateNode
+        if (sn && typeof sn.props === 'object' && typeof sn.props.onChange === 'function') {
+          // Get current editor state
+          const es = sn.props.editorState || (sn.state && sn.state.editorState)
+          if (!es || typeof es.getCurrentContent !== 'function') {
+            fiber = fiber.return
+            continue
+          }
+
+          // Get constructors from prototype
+          const EditorState = Object.getPrototypeOf(es).constructor
+          const ContentState = es.getCurrentContent().constructor
+
+          // Create new content: title on first line, blank line, then body
+          const text = title ? title + '\n\n' + body : body
+          const newContent = ContentState.createFromText(text)
+          const newState = EditorState.push(es, newContent, 'insert-characters')
+
+          // Trigger React re-render via onChange
+          sn.props.onChange(newState)
+
+          found = true
+          console.log('[CrossPost] Editor filled via Draft.js API')
+        }
+        fiber = fiber.return
+      }
+
+      if (!found) throw new Error('Could not find Draft.js onChange handler')
+    } catch (err: any) {
+      console.error('[CrossPost] Injection failed:', err.message || err)
     }
   })()
 }
