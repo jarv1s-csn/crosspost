@@ -1,9 +1,14 @@
-import React from "react"
+import React, { type ReactNode } from "react"
 
-export function TopBar() {
+interface TopBarProps {
+  children?: ReactNode
+}
+
+export function TopBar({ children }: TopBarProps) {
   return (
-    <header className="top-bar">
+    <div className="top-bar">
       <span className="top-bar-title">CrossPost</span>
-    </header>
+      {children}
+    </div>
   )
 }
