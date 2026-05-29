@@ -9,6 +9,7 @@ interface InputPanelProps {
   onTagsChange: (v: string) => void
   onAiRewrite: (data: { title: string; body: string; tags: string[] }) => void
   onDirectPublish: () => void
+  onDirectPublishBilibili: () => void
   loading: boolean
 }
 
@@ -21,6 +22,7 @@ export function InputPanel({
   onTagsChange,
   onAiRewrite,
   onDirectPublish,
+  onDirectPublishBilibili,
   loading
 }: InputPanelProps) {
   const handleRewrite = () => {
@@ -81,6 +83,13 @@ export function InputPanel({
           className="publish-direct-btn"
         >
           🚀 直接发布到知乎
+        </button>
+        <button
+          onClick={onDirectPublishBilibili}
+          disabled={!body.trim()}
+          className="publish-direct-btn"
+        >
+          🎬 直接发布到B站
         </button>
       </div>
     </div>

@@ -107,7 +107,6 @@ export function AppLayout() {
 
   // Direct publish to Zhihu (skip AI transform)
   const handleDirectPublish = useCallback(async () => {
-    alert("按钮点击成功！开始发布...")
     if (!body.trim()) {
       setError("请先输入正文内容")
       return
@@ -122,6 +121,24 @@ export function AppLayout() {
     }
 
     await handlePublish("zhihu", draft)
+  }, [title, body, tags, handlePublish])
+
+  // Direct publish to Bilibili (skip AI transform)
+  const handleDirectPublishBilibili = useCallback(async () => {
+    if (!body.trim()) {
+      setError("请先输入正文内容")
+      return
+    }
+
+    const draft: PlatformDraft = {
+      platformKey: "bilibili",
+      title: title.trim(),
+      body: body.trim(),
+      tags: tags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
+      metadata: {}
+    }
+
+    await handlePublish("bilibili", draft)
   }, [title, body, tags, handlePublish])
 
   const handleAiRewrite = useCallback(
@@ -183,6 +200,7 @@ export function AppLayout() {
           onTagsChange={setTags}
           onAiRewrite={handleAiRewrite}
           onDirectPublish={handleDirectPublish}
+          onDirectPublishBilibili={handleDirectPublishBilibili}
           loading={loading}
         />
         <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg} />
