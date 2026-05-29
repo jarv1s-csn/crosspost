@@ -182,3 +182,26 @@ body {
 .copy-all-btn:hover {
   background: #4f46e5;
 }
+.publish-status {
+  font-size: 12px;
+  color: #374151;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 4px 10px;
+  margin-bottom: 8px;
+}
+.publish-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  color: white;
+  background: #6366f1;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 4px;
+  margin-left: 8px;
+  float: right;
+}
+.publish-btn:hover { background: #4f46e5; }
+.publish-btn:disabled { background: #9ca3af; cursor: not-allowed; }

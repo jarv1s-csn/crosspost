@@ -5,6 +5,7 @@ import { PreviewPanel } from "./PreviewPanel"
 import { transformAllPlatforms } from "../../ai"
 import type { PlatformDraft, PlatformKey } from "../../types"
 import { saveApiKey, loadApiKey, saveDraft, loadDraft } from "../../storage"
+import { platformRegistry } from "../../platforms"
 
 export function AppLayout() {
   const [loading, setLoading] = useState(false)
@@ -12,6 +13,7 @@ export function AppLayout() {
   const [error, setError] = useState<string | null>(null)
   const [apiKey, setApiKey] = useState("")
   const [apiKeyLoaded, setApiKeyLoaded] = useState(false)
+  const [publishMsg, setPublishMsg] = useState<string | null>(null)
 
   // Editor state (lifted from InputPanel)
   const [title, setTitle] = useState("")
@@ -64,6 +66,25 @@ export function AppLayout() {
       }
     }
   }, [title, body, tags, draftLoaded])
+
+  const handlePublish = useCallback(
+    async (platform: PlatformKey, draft: PlatformDraft) => {
+      setPublishMsg("发布中...")
+      try {
+        const result = await platformRegistry.get(platform).publish(draft, { platform })
+        if ("error" in result) {
+          setPublishMsg(`发布失败: ${result.error}`)
+        } else {
+          setPublishMsg("发布成功")
+        }
+      } catch (err) {
+        setPublishMsg(`发布失败: ${err instanceof Error ? err.message : String(err)}`)
+      } finally {
+        setTimeout(() => setPublishMsg(null), 3000)
+      }
+    },
+    []
+  )
 
   const handleAiRewrite = useCallback(
     async (input: { title: string; body: string; tags: string[] }) => {
@@ -125,7 +146,7 @@ export function AppLayout() {
           onAiRewrite={handleAiRewrite}
           loading={loading}
         />
-        <PreviewPanel results={results} error={error} />
+        <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg} />
       </div>
     </div>
   )
