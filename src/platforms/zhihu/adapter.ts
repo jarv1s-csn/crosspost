@@ -85,7 +85,7 @@ export class ZhihuAdapter implements IPlatformAdapter {
       const result = await new Promise<{ success: boolean; diag: string; error?: string }>((resolve) => {
         chrome.scripting.executeScript(
           {
-            target: { tabId },
+            target: { tabId, frameIds: [0] },
             func: zhihuInject,
             args: [draft.title, draft.body],
             world: "MAIN"
