@@ -107,6 +107,7 @@ export function AppLayout() {
 
   // Direct publish to Zhihu (skip AI transform)
   const handleDirectPublish = useCallback(async () => {
+    alert("按钮点击成功！开始发布...")
     if (!body.trim()) {
       setError("请先输入正文内容")
       return
