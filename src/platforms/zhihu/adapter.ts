@@ -1,7 +1,7 @@
 import type { IPlatformAdapter } from "../interface"
 import type { ContentInput, PlatformDraft, PreviewData, PlatformCredentials, PublishResult } from "../../types"
-import type { InjectionResult } from "../../utils/dom"
 import { formatZhihuContent } from "./formatter"
+import { zhihuInjectFunc } from "./inject"
 
 export class ZhihuAdapter implements IPlatformAdapter {
   readonly displayName = "知乎"
@@ -45,22 +45,27 @@ export class ZhihuAdapter implements IPlatformAdapter {
 
           chrome.tabs.onUpdated.removeListener(listener)
 
-          // Content script's pollForElement handles DOM readiness — no fixed sleep
-          chrome.tabs.sendMessage(tabId, {
-            type: "CROSSPOST_PUBLISH",
-            title: draft.title,
-            body: draft.body,
-            tags: draft.tags,
-            autoSubmit: false // SAFETY: never auto-submit
-          }, (response: InjectionResult | undefined) => {
-            if (chrome.runtime.lastError) {
-              resolve({ success: false, error: chrome.runtime.lastError.message || "Message failed" })
-            } else if (response?.status === "success") {
-              resolve({ success: true, platformPostId: "", url: publishUrl })
-            } else {
-              resolve({ success: false, error: response?.message || "Unknown error" })
+          chrome.scripting.executeScript(
+            {
+              target: { tabId },
+              func: zhihuInjectFunc(draft.title, draft.body),
+              world: "MAIN"
+            },
+            () => {
+              if (chrome.runtime.lastError) {
+                resolve({
+                  success: false,
+                  error: chrome.runtime.lastError.message || "Injection failed"
+                })
+              } else {
+                resolve({
+                  success: true,
+                  platformPostId: "",
+                  url: publishUrl
+                })
+              }
             }
-          })
+          )
         })
       })
     })
