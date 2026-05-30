@@ -93,19 +93,12 @@ export function wechatInject(title: string, body: string): Promise<string> {
         return null
       }, "__MP_Editor_JSAPI__")
         .then(function (jsapi: any) {
-          // Wait for editor to be ready
-          return poll(function () {
-            var resp = jsapi.invoke({ apiName: "mp_editor_get_isready" })
-            if (resp && resp.isNew === true) return resp
-            return null
-          }, "editor ready").then(function () {
-            var html = textToHTML(body)
-            jsapi.invoke({
-              apiName: "mp_editor_set_content",
-              content: html,
-            })
-            log("BODY filled via JSAPI: " + body.length + " chars → " + html.length + " HTML")
+          var html = textToHTML(body)
+          jsapi.invoke({
+            apiName: "mp_editor_set_content",
+            content: html,
           })
+          log("BODY filled via JSAPI: " + body.length + " chars → " + html.length + " HTML")
         })
         .catch(function (e: any) {
           log("BODY ERROR: " + (e.message || String(e)))
