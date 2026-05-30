@@ -1,6 +1,7 @@
 const STORAGE_KEYS = {
   API_KEY: "crosspost_api_key",
   LAST_DRAFT: "crosspost_last_draft",
+  LAST_RESULTS: "crosspost_last_results",
   PUBLISH_HISTORY: "crosspost_publish_history",
 } as const
 
@@ -33,4 +34,13 @@ export async function loadDraft(): Promise<StoredDraft | null> {
 
 export async function clearDraft(): Promise<void> {
   await chrome.storage.local.remove(STORAGE_KEYS.LAST_DRAFT)
+}
+
+export async function saveResults(data: Record<string, unknown>): Promise<void> {
+  await chrome.storage.local.set({ [STORAGE_KEYS.LAST_RESULTS]: data })
+}
+
+export async function loadResults(): Promise<Record<string, unknown> | null> {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.LAST_RESULTS)
+  return (result[STORAGE_KEYS.LAST_RESULTS] as Record<string, unknown>) || null
 }
