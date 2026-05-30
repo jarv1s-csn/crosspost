@@ -69,6 +69,7 @@ export function wechatInject(title: string, body: string): Promise<string> {
             ? HTMLTextAreaElement.prototype
             : HTMLInputElement.prototype
           var desc = Object.getOwnPropertyDescriptor(proto, "value")
+          el.focus()
           if (desc && desc.set) {
             desc.set.call(el, title)
           } else {
@@ -76,6 +77,8 @@ export function wechatInject(title: string, body: string): Promise<string> {
           }
           el.dispatchEvent(new Event("input", { bubbles: true }))
           el.dispatchEvent(new Event("change", { bubbles: true }))
+          el.dispatchEvent(new Event("compositionend", { bubbles: true }))
+          el.blur()
           log("TITLE filled: " + title.length + " chars")
         })
         .catch(function (e: any) {
