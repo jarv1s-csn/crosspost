@@ -1,5 +1,5 @@
 // === Platform identifiers ===
-export type PlatformKey = "xiaohongshu" | "bilibili" | "zhihu"
+export type PlatformKey = "wechat" | "xiaohongshu" | "bilibili" | "zhihu"
 
 // === Original user input ===
 export interface ContentInput {
