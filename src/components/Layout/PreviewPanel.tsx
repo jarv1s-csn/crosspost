@@ -15,6 +15,13 @@ const PLATFORM_NAMES: Record<PlatformKey, string> = {
   xiaohongshu: "小红书"
 }
 
+const PLATFORM_ICONS: Record<PlatformKey, string> = {
+  zhihu: "🚀",
+  bilibili: "🎬",
+  wechat: "📰",
+  xiaohongshu: "📕"
+}
+
 function formatDraft(draft: PlatformDraft): string {
   return `【标题】\n${draft.title}\n\n【正文】\n${draft.body}\n\n【标签】\n${draft.tags.join(" ")}`
 }
@@ -45,7 +52,14 @@ function ResultCard({
 
   return (
     <div className="result-card">
-      <h3 className="platform-label">{PLATFORM_NAMES[platform]}</h3>
+      <div className="result-card-header">
+        <h3 className="platform-label">
+          {PLATFORM_ICONS[platform]} {PLATFORM_NAMES[platform]}
+        </h3>
+        <button className="publish-btn" onClick={() => onPublish(platform, draft)}>
+          发布
+        </button>
+      </div>
       <div className="result-title">{draft.title}</div>
       <div className="result-body" style={{ whiteSpace: "pre-wrap" }}>
         {draft.body}
@@ -60,11 +74,6 @@ function ResultCard({
       <button className="copy-btn" onClick={handleCopy}>
         {label}
       </button>
-      {platform === "zhihu" && (
-        <button className="publish-btn" onClick={() => onPublish(platform, draft)}>
-          发布到知乎
-        </button>
-      )}
     </div>
   )
 }

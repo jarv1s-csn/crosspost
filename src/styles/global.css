@@ -151,10 +151,15 @@ body {
   padding: 12px;
   margin-bottom: 12px;
 }
-.platform-label {
-  font-size: 12px;
-  color: #6366f1;
+.result-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 6px;
+}
+.platform-label {
+  font-size: 13px;
+  color: #6366f1;
 }
 .result-title {
   font-weight: 600;
