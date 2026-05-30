@@ -101,6 +101,9 @@ export function InputPanel({
           📰 直接发布到公众号
         </button>
       </div>
+      <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
+        💡 公众号/B站 需先在浏览器中登录。内容 2 秒无操作自动保存。
+      </div>
     </div>
   )
 }

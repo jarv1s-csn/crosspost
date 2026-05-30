@@ -15,10 +15,7 @@ const URL_PATTERN = "*://mp.weixin.qq.com/cgi-bin/appmsg*"
 
 function isEditorPage(url: string | undefined): boolean {
   if (!url) return false
-  return (
-    url.includes("mp.weixin.qq.com/cgi-bin/appmsg") &&
-    (url.includes("action=edit") || url.includes("action=new"))
-  )
+  return url.includes("mp.weixin.qq.com/cgi-bin/appmsg")
 }
 
 export class WechatAdapter implements IPlatformAdapter {

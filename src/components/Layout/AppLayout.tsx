@@ -14,6 +14,7 @@ export function AppLayout() {
   const [apiKey, setApiKey] = useState("")
   const [apiKeyLoaded, setApiKeyLoaded] = useState(false)
   const [publishMsg, setPublishMsg] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<string>("")
 
   // Editor state
   const [title, setTitle] = useState("")
@@ -74,6 +75,7 @@ export function AppLayout() {
         try {
           if (typeof chrome !== 'undefined' && chrome.storage) {
             saveDraft({ title, body, tags, updatedAt: Date.now() })
+            setSaveStatus("已保存 " + new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'}))
           }
         } catch { /* ignore */ }
       }
@@ -88,18 +90,19 @@ export function AppLayout() {
 
   const handlePublish = useCallback(
     async (platform: PlatformKey, draft: PlatformDraft) => {
-      setPublishMsg("发布中...")
+      const names: Record<PlatformKey, string> = { zhihu: "知乎", bilibili: "B站", wechat: "公众号", xiaohongshu: "小红书" }
+      setPublishMsg(`[${names[platform]}] 发布中...`)
       try {
         const result = await platformRegistry.get(platform).publish(draft, { platform })
         if ("success" in result && result.success) {
-          setPublishMsg("✅ 已打开编辑器并填入内容，请检查知乎标签页")
+          setPublishMsg(`✅ 已填入${names[platform]}编辑器，请检查对应标签页`)
         } else if ("error" in result) {
-          setPublishMsg(`发布失败: ${result.error}`)
+          setPublishMsg(`❌ 发布失败: ${result.error}`)
         }
       } catch (err) {
-        setPublishMsg(`发布失败: ${err instanceof Error ? err.message : String(err)}`)
+        setPublishMsg(`❌ 发布失败: ${err instanceof Error ? err.message : String(err)}`)
       } finally {
-        setTimeout(() => setPublishMsg(null), 5000)
+        setTimeout(() => setPublishMsg(null), 8000)
       }
     },
     []
@@ -193,6 +196,7 @@ export function AppLayout() {
     <div className="app-shell">
       <TopBar>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+          {saveStatus && <span style={{ color: '#22c55e', fontSize: 11 }}>{saveStatus}</span>}
           <input
             type="password"
             value={apiKey}
