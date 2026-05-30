@@ -10,7 +10,7 @@
  */
 
 export function xiaohongshuInject(title: string, body: string): Promise<string> {
-  var TIMEOUT = 15000
+  var TIMEOUT = 30000
   var INTERVAL = 200
 
   function log(msg: string) {
@@ -56,11 +56,11 @@ export function xiaohongshuInject(title: string, body: string): Promise<string> 
     .then(function (btn: HTMLElement) {
       log("CLICK 上传图文")
       btn.click()
-      // Wait for editor to open (React SPA transition)
+      // Wait for editor to open (React SPA transition can be slow)
       return new Promise(function (resolve) {
         setTimeout(function () {
           resolve(null)
-        }, 2500)
+        }, 4000)
       })
     })
     .then(function () {
