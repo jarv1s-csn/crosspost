@@ -1,12 +1,12 @@
 /**
- * Injection function for Xiaohongshu creator platform.
+ * Injection function for Xiaohongshu "写长文" editor.
  *
  * Serialized by chrome.scripting.executeScript({ func, world: "MAIN" }).
  *
- * Xiaohongshu creator editor is React-controlled contenteditable.
- * We use ClipboardEvent('paste') to set content.
- *
- * Reference: MultiPost-Extension src/sync/dynamic/rednote.ts
+ * Xiaohongshu long-form editor uses ProseMirror (TipTap):
+ *   - Title: TEXTAREA.d-text placeholder="输入标题"
+ *   - Body: DIV.tiptap.ProseMirror → pmEl.editor.chain().setContent()
+ *   - Entry: click span "写长文" to open editor
  */
 
 export function xiaohongshuInject(title: string, body: string): Promise<string> {
@@ -15,6 +15,17 @@ export function xiaohongshuInject(title: string, body: string): Promise<string> 
 
   function log(msg: string) {
     console.log("[CrossPost:小红书] " + msg)
+  }
+
+  function textToHTML(text: string): string {
+    var paragraphs = text.split(/\n\s*\n/)
+    var result = ""
+    for (var i = 0; i < paragraphs.length; i++) {
+      var p = paragraphs[i].trim()
+      if (!p) continue
+      result += "<p>" + p.replace(/\n/g, "<br>") + "</p>"
+    }
+    return result || "<p>" + text + "</p>"
   }
 
   function poll(checkFn: () => any, label: string): Promise<any> {
@@ -41,133 +52,90 @@ export function xiaohongshuInject(title: string, body: string): Promise<string> 
 
   log("START title=" + (title ? title.length : 0) + " body=" + (body ? body.length : 0))
 
-  // Step 1: Find entry button — prefer "文字配图" (auto-generates image from text)
-  // Fallback to "上传图文" if not found
+  // Step 1: Click "写长文" to enter the editor
   return poll(function () {
     var spans = document.querySelectorAll("span")
-    // Priority 1: "文字配图" — no file dialog, auto image generation
     for (var i = 0; i < spans.length; i++) {
       var s = spans[i] as HTMLElement
       var t = s.textContent || ""
-      if (t.indexOf("文字配图") !== -1) {
-        return { el: s, type: "文字配图" }
-      }
+      if (t.indexOf("写长文") !== -1) return s
     }
-    // Priority 2: "上传图文" — legacy, opens file dialog
-    for (var j = 0; j < spans.length; j++) {
-      var s2 = spans[j] as HTMLElement
-      var t2 = s2.textContent || ""
-      if (t2.indexOf("上传图文") !== -1) {
-        return { el: s2, type: "上传图文" }
-      }
-    }
+    // Fallback: maybe already in editor
+    var pm = document.querySelector(".ProseMirror")
+    if (pm) return { alreadyOpen: true }
     return null
-  }, "entry button")
+  }, "写长文 button")
     .then(function (found: any) {
-      log("CLICK " + found.type)
-      found.el.click()
+      if (found.alreadyOpen) {
+        log("Editor already open")
+        return null
+      }
+      log("CLICK 写长文")
+      found.click()
       return new Promise(function (resolve) {
         setTimeout(function () { resolve(null) }, 3000)
       })
     })
     .then(function () {
-      var promises: Promise<any>[] = []
-
-      // Fill title
-      if (title) {
-        promises.push(
-          poll(function () {
-            var inputs = document.querySelectorAll(
-              'input[type="text"], textarea, [contenteditable="true"]'
-            )
-            for (var i = 0; i < inputs.length; i++) {
-              var inp = inputs[i] as HTMLElement
-              var ph = (inp.getAttribute("placeholder") || "").toLowerCase()
-              var id = (inp.id || "").toLowerCase()
-              var text = (inp.textContent || "").trim()
-              if (
-                ph.indexOf("标题") !== -1 ||
-                ph.indexOf("title") !== -1 ||
-                id === "title" ||
-                text === "填写标题会有更多赞哦～" ||
-                text === "请输入标题"
-              ) {
-                return inp
-              }
-            }
-            return null
-          }, "title input")
-            .then(function (el: any) {
-              var isInput =
-                el.tagName === "INPUT" || el.tagName === "TEXTAREA"
-              if (isInput) {
-                var desc = Object.getOwnPropertyDescriptor(
-                  el.tagName === "TEXTAREA"
-                    ? HTMLTextAreaElement.prototype
-                    : HTMLInputElement.prototype,
-                  "value"
-                )
-                if (desc && desc.set) {
-                  desc.set.call(el, title)
-                } else {
-                  el.value = title
-                }
-                el.dispatchEvent(new Event("input", { bubbles: true }))
-                el.dispatchEvent(new Event("change", { bubbles: true }))
-              } else {
-                // contenteditable title
-                el.textContent = title
-                el.dispatchEvent(new Event("input", { bubbles: true }))
-              }
-              log("TITLE filled: " + title.length + " chars")
-            })
-            .catch(function (e: any) {
-              log("TITLE ERROR: " + (e.message || String(e)))
-            })
-        )
-      }
-
-      // Fill body via ClipboardEvent
-      if (body) {
-        promises.push(
-          poll(function () {
-            var editables = document.querySelectorAll(
-              '[contenteditable="true"]'
-            )
-            for (var i = 0; i < editables.length; i++) {
-              var ed = editables[i] as HTMLElement
-              // Must be visible and a block element
-              if (ed.offsetParent === null) continue
-              var tag = ed.tagName
-              if (tag === "DIV" || tag === "SECTION" || tag === "P") {
-                return ed
-              }
-            }
-            return null
-          }, "contenteditable")
-            .then(function (contentEl: HTMLElement) {
-              contentEl.focus()
-              var pasteEvent = new ClipboardEvent("paste", {
-                bubbles: true,
-                cancelable: true,
-                clipboardData: new DataTransfer(),
-              })
-              pasteEvent.clipboardData.setData("text/plain", body)
-              contentEl.dispatchEvent(pasteEvent)
-              log("BODY pasted: " + body.length + " chars")
-              setTimeout(function () {
-                contentEl.blur()
-              }, 500)
-            })
-            .catch(function (e: any) {
-              log("BODY ERROR: " + (e.message || String(e)))
-            })
-        )
-      }
-
-      return Promise.all(promises)
+      // Step 2: Poll for ProseMirror editor
+      return poll(function () {
+        var pm = document.querySelector(
+          ".ProseMirror"
+        ) as HTMLElement & { editor?: any }
+        if (pm && pm.editor && typeof pm.editor.chain === "function") {
+          return pm
+        }
+        return null
+      }, "ProseMirror.editor")
     })
-    .then(function () {
+    .then(function (pm: any) {
+      log("ProseMirror READY")
+
+      var bodyHTML = body ? textToHTML(body) : ""
+
+      // Fill body via TipTap API
+      if (bodyHTML) {
+        try {
+          pm.editor.chain().focus().setContent(bodyHTML).run()
+          log(
+            "BODY filled: " +
+              body.length +
+              " chars → " +
+              bodyHTML.length +
+              " HTML"
+          )
+        } catch (e: any) {
+          log("BODY ERROR: " + (e.message || String(e)))
+        }
+      } else {
+        log("BODY skipped")
+      }
+
+      // Fill title — TEXTAREA.d-text placeholder="输入标题"
+      if (title) {
+        var titleEl = document.querySelector(
+          'textarea.d-text, textarea[placeholder*="输入标题"], textarea[placeholder*="标题"]'
+        ) as HTMLTextAreaElement
+        if (titleEl) {
+          var desc = Object.getOwnPropertyDescriptor(
+            HTMLTextAreaElement.prototype,
+            "value"
+          )
+          if (desc && desc.set) {
+            desc.set.call(titleEl, title)
+          } else {
+            titleEl.value = title
+          }
+          titleEl.dispatchEvent(new Event("input", { bubbles: true }))
+          titleEl.dispatchEvent(new Event("change", { bubbles: true }))
+          log("TITLE filled: " + title.length + " chars")
+        } else {
+          log("TITLE element not found")
+        }
+      } else {
+        log("TITLE skipped")
+      }
+
       log("DONE filling, now auto-publish...")
       return tryAutoPublish()
     })
