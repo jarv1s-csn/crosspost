@@ -40,7 +40,6 @@ export class WechatAdapter implements IPlatformAdapter {
     draft: PlatformDraft,
     _credentials: PlatformCredentials
   ): Promise<PublishResult> {
-    alert("[公众号] publish 被调用, title=" + draft.title?.length + " body=" + draft.body?.length)
     const steps: string[] = []
 
     try {

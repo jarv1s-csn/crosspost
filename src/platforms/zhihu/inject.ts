@@ -4,7 +4,7 @@
  * create new EditorState via Draft.js API → call onChange to trigger re-render.
  */
 export function zhihuInject(title: string, body: string): void {
-  const TIMEOUT = 15000
+  const TIMEOUT = 60000
   const INTERVAL = 200
 
   async function pollForElement(selector: string): Promise<Element> {
