@@ -25,6 +25,7 @@ export class ZhihuAdapter implements IPlatformAdapter {
     draft: PlatformDraft,
     _credentials: PlatformCredentials
   ): Promise<PublishResult> {
+    alert("[知乎] publish 被调用, title=" + draft.title?.length + " body=" + draft.body?.length)
     const steps: string[] = []
 
     try {
