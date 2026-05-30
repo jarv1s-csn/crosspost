@@ -11,6 +11,7 @@ interface PreviewPanelProps {
 const PLATFORM_NAMES: Record<PlatformKey, string> = {
   zhihu: "知乎",
   bilibili: "B站",
+  wechat: "公众号",
   xiaohongshu: "小红书"
 }
 
