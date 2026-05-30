@@ -23,6 +23,10 @@ export function AppLayout() {
   const [draftLoaded, setDraftLoaded] = useState(false)
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const draftRef = useRef({ title: "", body: "", tags: "" })
+
+  // Keep ref in sync with state
+  draftRef.current = { title, body, tags }
 
   // Load saved data on mount (with defensive chrome.storage check)
   useEffect(() => {
@@ -89,17 +93,19 @@ export function AppLayout() {
   }, [title, body, tags, draftLoaded])
 
   // Save on unmount — fire immediately when popup closes
+  // Uses ref to avoid saving stale values from previous render
   useEffect(() => {
     return () => {
-      if (title || body || tags) {
+      var d = draftRef.current
+      if (d.title || d.body || d.tags) {
         try {
           if (typeof chrome !== 'undefined' && chrome.storage) {
-            saveDraft({ title, body, tags, updatedAt: Date.now() })
+            saveDraft({ title: d.title, body: d.body, tags: d.tags, updatedAt: Date.now() })
           }
         } catch { /* ignore */ }
       }
     }
-  }, [title, body, tags])
+  }, [])
 
   const handlePublish = useCallback(
     async (platform: PlatformKey, draft: PlatformDraft) => {
