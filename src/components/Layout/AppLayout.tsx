@@ -2,9 +2,10 @@ import React, { useState, useCallback, useEffect, useRef } from "react"
 import { TopBar } from "./TopBar"
 import { InputPanel } from "./InputPanel"
 import { PreviewPanel } from "./PreviewPanel"
+import { SettingsPanel } from "./SettingsPanel"
 import { transformAllPlatforms } from "../../ai"
 import type { PlatformDraft, PlatformKey } from "../../types"
-import { saveApiKey, loadApiKey, saveDraft, loadDraft } from "../../storage"
+import { saveApiKey, loadApiKey, saveDraft, loadDraft, saveResults, loadResults } from "../../storage"
 import { platformRegistry } from "../../platforms"
 
 export function AppLayout() {
@@ -15,6 +16,7 @@ export function AppLayout() {
   const [apiKeyLoaded, setApiKeyLoaded] = useState(false)
   const [publishMsg, setPublishMsg] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<string>("")
+  const [activeTab, setActiveTab] = useState<"publish" | "settings">("publish")
 
   // Editor state
   const [title, setTitle] = useState("")
@@ -45,6 +47,10 @@ export function AppLayout() {
           }
           setDraftLoaded(true)
         }).catch(() => setDraftLoaded(true))
+
+        loadResults().then((r) => {
+          if (r) setResults(r as Partial<Record<PlatformKey, PlatformDraft>>)
+        }).catch(() => {})
       } else {
         setApiKeyLoaded(true)
         setDraftLoaded(true)
@@ -127,78 +133,6 @@ export function AppLayout() {
     []
   )
 
-  // Direct publish to Zhihu (skip AI transform)
-  const handleDirectPublish = useCallback(async () => {
-    if (!body.trim()) {
-      setError("请先输入正文内容")
-      return
-    }
-
-    const draft: PlatformDraft = {
-      platformKey: "zhihu",
-      title: title.trim(),
-      body: body.trim(),
-      tags: tags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
-      metadata: {}
-    }
-
-    await handlePublish("zhihu", draft)
-  }, [title, body, tags, handlePublish])
-
-  // Direct publish to Bilibili (skip AI transform)
-  const handleDirectPublishBilibili = useCallback(async () => {
-    if (!body.trim()) {
-      setError("请先输入正文内容")
-      return
-    }
-
-    const draft: PlatformDraft = {
-      platformKey: "bilibili",
-      title: title.trim(),
-      body: body.trim(),
-      tags: tags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
-      metadata: {}
-    }
-
-    await handlePublish("bilibili", draft)
-  }, [title, body, tags, handlePublish])
-
-  // Direct publish to WeChat (skip AI transform)
-  const handleDirectPublishWechat = useCallback(async () => {
-    if (!body.trim()) {
-      setError("请先输入正文内容")
-      return
-    }
-
-    const draft: PlatformDraft = {
-      platformKey: "wechat",
-      title: title.trim(),
-      body: body.trim(),
-      tags: tags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
-      metadata: {}
-    }
-
-    await handlePublish("wechat", draft)
-  }, [title, body, tags, handlePublish])
-
-  // Direct publish to Xiaohongshu (skip AI transform)
-  const handleDirectPublishXiaohongshu = useCallback(async () => {
-    if (!body.trim()) {
-      setError("请先输入正文内容")
-      return
-    }
-
-    const draft: PlatformDraft = {
-      platformKey: "xiaohongshu",
-      title: title.trim(),
-      body: body.trim(),
-      tags: tags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
-      metadata: {}
-    }
-
-    await handlePublish("xiaohongshu", draft)
-  }, [title, body, tags, handlePublish])
-
   const handleAiRewrite = useCallback(
     async (input: { title: string; body: string; tags: string[] }) => {
       if (!apiKey.trim()) {
@@ -219,6 +153,7 @@ export function AppLayout() {
           setError("所有平台改写失败，请检查 API Key 和网络连接")
         } else {
           setResults(data)
+          saveResults(data as Record<string, unknown>).catch(() => {})
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "改写失败")
@@ -231,41 +166,28 @@ export function AppLayout() {
 
   return (
     <div className="app-shell">
-      <TopBar>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-          {saveStatus && <span style={{ color: '#22c55e', fontSize: 11 }}>{saveStatus}</span>}
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="DeepSeek API Key"
-            style={{
-              width: 180,
-              padding: "2px 6px",
-              fontSize: 11,
-              border: "1px solid #6366f1",
-              borderRadius: 4
-            }}
+      <TopBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        saveStatus={saveStatus}
+      />
+      {activeTab === "publish" ? (
+        <div className="panels">
+          <InputPanel
+            title={title}
+            body={body}
+            tags={tags}
+            onTitleChange={setTitle}
+            onBodyChange={setBody}
+            onTagsChange={setTags}
+            onAiRewrite={handleAiRewrite}
+            loading={loading}
           />
+          <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg} />
         </div>
-      </TopBar>
-      <div className="panels">
-        <InputPanel
-          title={title}
-          body={body}
-          tags={tags}
-          onTitleChange={setTitle}
-          onBodyChange={setBody}
-          onTagsChange={setTags}
-          onAiRewrite={handleAiRewrite}
-          onDirectPublish={handleDirectPublish}
-          onDirectPublishBilibili={handleDirectPublishBilibili}
-          onDirectPublishWechat={handleDirectPublishWechat}
-          onDirectPublishXiaohongshu={handleDirectPublishXiaohongshu}
-          loading={loading}
-        />
-        <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg} />
-      </div>
+      ) : (
+        <SettingsPanel />
+      )}
     </div>
   )
 }
