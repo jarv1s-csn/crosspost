@@ -10,7 +10,7 @@ import { formatWechatContent } from "./formatter"
 import { wechatInject } from "./inject"
 
 const EDITOR_URL =
-  "https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit&action=edit&type=77&isNew=1"
+  "https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit_v2&action=edit&isNew=1&type=77&createType=0&lang=zh_CN"
 const URL_PATTERN = "*://mp.weixin.qq.com/cgi-bin/appmsg*"
 
 function isEditorPage(url: string | undefined): boolean {
