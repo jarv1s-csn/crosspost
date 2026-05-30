@@ -84,6 +84,8 @@ export function wechatInject(title: string, body: string): Promise<string> {
     : Promise.resolve()
 
   // Fill body via official MP_Editor_JSAPI
+  // Correct invoke signature: { apiName, apiParam: { content }, sucCb, errCb }
+  // Must wait for mp_editor_get_isready isNew=true before calling mp_editor_set_content
   var bodyPromise: Promise<void> = body
     ? poll(function () {
         var w = window as any
@@ -94,11 +96,42 @@ export function wechatInject(title: string, body: string): Promise<string> {
       }, "__MP_Editor_JSAPI__")
         .then(function (jsapi: any) {
           var html = textToHTML(body)
-          jsapi.invoke({
-            apiName: "mp_editor_set_content",
-            content: html,
+          return new Promise<void>(function (resolve, reject) {
+            var start = performance.now()
+            function trySet() {
+              if (performance.now() - start >= TIMEOUT) {
+                reject(new Error("mp_editor_set_content TIMEOUT"))
+                return
+              }
+              jsapi.invoke({
+                apiName: "mp_editor_get_isready",
+                sucCb: function (res: any) {
+                  if (!res || !res.isNew) {
+                    log("EDITOR not isNew yet (isNew=" + (res && res.isNew) + "), retrying...")
+                    setTimeout(trySet, INTERVAL)
+                    return
+                  }
+                  jsapi.invoke({
+                    apiName: "mp_editor_set_content",
+                    apiParam: { content: html },
+                    sucCb: function () {
+                      log("BODY filled via JSAPI: " + body.length + " chars → " + html.length + " HTML")
+                      resolve()
+                    },
+                    errCb: function (err: any) {
+                      log("BODY set_content errCb: " + JSON.stringify(err))
+                      reject(new Error("mp_editor_set_content failed: " + JSON.stringify(err)))
+                    },
+                  })
+                },
+                errCb: function (err: any) {
+                  log("mp_editor_get_isready errCb: " + JSON.stringify(err))
+                  setTimeout(trySet, INTERVAL)
+                },
+              })
+            }
+            trySet()
           })
-          log("BODY filled via JSAPI: " + body.length + " chars → " + html.length + " HTML")
         })
         .catch(function (e: any) {
           log("BODY ERROR: " + (e.message || String(e)))
