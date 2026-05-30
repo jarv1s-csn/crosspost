@@ -11,6 +11,7 @@ interface InputPanelProps {
   onDirectPublish: () => void
   onDirectPublishBilibili: () => void
   onDirectPublishWechat: () => void
+  onDirectPublishXiaohongshu: () => void
   loading: boolean
 }
 
@@ -25,6 +26,7 @@ export function InputPanel({
   onDirectPublish,
   onDirectPublishBilibili,
   onDirectPublishWechat,
+  onDirectPublishXiaohongshu,
   loading
 }: InputPanelProps) {
   const handleRewrite = () => {
@@ -99,6 +101,13 @@ export function InputPanel({
           className="publish-direct-btn"
         >
           📰 直接发布到公众号
+        </button>
+        <button
+          onClick={onDirectPublishXiaohongshu}
+          disabled={!body.trim()}
+          className="publish-direct-btn"
+        >
+          📕 直接发布到小红书
         </button>
       </div>
       <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>

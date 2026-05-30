@@ -4,14 +4,14 @@ import { platformRegistry } from "./registry"
 import { ZhihuAdapter } from "./zhihu/adapter"
 import { BilibiliAdapter } from "./bilibili/adapter"
 import { WechatAdapter } from "./wechat/adapter"
+import { XiaohongshuAdapter } from "./xiaohongshu/adapter"
 
 platformRegistry.register(new ZhihuAdapter())
 platformRegistry.register(new BilibiliAdapter())
 platformRegistry.register(new WechatAdapter())
+platformRegistry.register(new XiaohongshuAdapter())
 
-// Future registrations:
-// import { XiaohongshuAdapter } from "./xiaohongshu/adapter"
-// platformRegistry.register(new XiaohongshuAdapter())
+// All platforms registered
 
 export { platformRegistry }
 export type { IPlatformAdapter } from "./interface"
