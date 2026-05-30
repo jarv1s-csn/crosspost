@@ -9,8 +9,8 @@ import type {
 import { formatXiaohongshuContent } from "./formatter"
 import { xiaohongshuInject } from "./inject"
 
-const EDITOR_URL = "https://creator.xiaohongshu.com/new/note-manager"
-const URL_PATTERN = "*://creator.xiaohongshu.com/*"
+const EDITOR_URL = "https://creator.xiaohongshu.com/publish/publish?from=menu&target=article"
+const URL_PATTERN = "*://creator.xiaohongshu.com/publish/*"
 
 function isEditorPage(url: string | undefined): boolean {
   return !!url && url.includes("creator.xiaohongshu.com")

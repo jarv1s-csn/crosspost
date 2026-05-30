@@ -1,66 +1,113 @@
 /**
- * Injection function for Zhihu article editor (Draft.js based).
- * Tested working approach: find React fiber → walk to component with onChange →
- * create new EditorState via Draft.js API → call onChange to trigger re-render.
+ * Injection function for Zhihu article editor.
+ *
+ * Serialized by chrome.scripting.executeScript({ func, world: "MAIN" }).
+ * MUST be self-contained — no async/await, no closure references, globals only.
+ *
+ * Title: standalone TEXTAREA with placeholder "请输入标题"
+ * Body: Draft.js contenteditable .public-DraftEditor-content
  */
-export function zhihuInject(title: string, body: string): void {
-  const TIMEOUT = 60000
-  const INTERVAL = 200
 
-  async function pollForElement(selector: string): Promise<Element> {
-    const start = performance.now()
-    while (performance.now() - start < TIMEOUT) {
-      const el = document.querySelector(selector)
-      if (el) return el
-      await new Promise((r) => setTimeout(r, INTERVAL))
-    }
-    throw new Error('Selector "' + selector + '" not found after ' + TIMEOUT + 'ms')
+export function zhihuInject(title: string, body: string): Promise<string> {
+  var TIMEOUT = 60000
+  var INTERVAL = 200
+
+  function log(msg: string) {
+    console.log("[CrossPost] " + msg)
   }
 
-  ;(async () => {
-    try {
-      const editorEl = await pollForElement('.public-DraftEditor-content')
-      const el = editorEl as HTMLElement
-
-      // Find React fiber key
-      const fiberKey = Object.keys(el).find((k) => k.startsWith('__reactFiber'))
-      if (!fiberKey) throw new Error('No React fiber found')
-
-      // Walk up fiber tree to find component with props.onChange
-      let fiber: any = (el as any)[fiberKey]
-      let found = false
-
-      while (fiber && !found) {
-        const sn = fiber.stateNode
-        if (sn && typeof sn.props === 'object' && typeof sn.props.onChange === 'function') {
-          // Get current editor state
-          const es = sn.props.editorState || (sn.state && sn.state.editorState)
-          if (!es || typeof es.getCurrentContent !== 'function') {
-            fiber = fiber.return
-            continue
-          }
-
-          // Get constructors from prototype
-          const EditorState = Object.getPrototypeOf(es).constructor
-          const ContentState = es.getCurrentContent().constructor
-
-          // Create new content: title on first line, blank line, then body
-          const text = title ? title + '\n\n' + body : body
-          const newContent = ContentState.createFromText(text)
-          const newState = EditorState.push(es, newContent, 'insert-characters')
-
-          // Trigger React re-render via onChange
-          sn.props.onChange(newState)
-
-          found = true
-          console.log('[CrossPost] Editor filled via Draft.js API')
+  function pollForElement(selector: string): Promise<Element> {
+    return new Promise(function (resolve, reject) {
+      var start = performance.now()
+      function check() {
+        if (performance.now() - start >= TIMEOUT) {
+          reject(new Error('"' + selector + '" TIMEOUT'))
+          return
         }
-        fiber = fiber.return
+        var el = document.querySelector(selector)
+        if (el) { resolve(el); return }
+        setTimeout(check, INTERVAL)
       }
+      check()
+    })
+  }
 
-      if (!found) throw new Error('Could not find Draft.js onChange handler')
-    } catch (err: any) {
-      console.error('[CrossPost] Injection failed:', err.message || err)
+  function fillInputNative(el: HTMLTextAreaElement | HTMLInputElement, value: string): void {
+    var proto = el instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+    var desc = Object.getOwnPropertyDescriptor(proto, 'value')
+    if (desc && desc.set) desc.set.call(el, value)
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    el.dispatchEvent(new Event('change', { bubbles: true }))
+  }
+
+  function fillDraftEditor(editorEl: HTMLElement, text: string): string {
+    var fiberKey
+    var keys = Object.keys(editorEl)
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].indexOf('__reactFiber') === 0) { fiberKey = keys[i]; break }
     }
-  })()
+    if (!fiberKey) return 'ERR_NO_FIBER'
+
+    var fiber = (editorEl as any)[fiberKey]
+    var depth = 0
+    while (fiber && depth < 50) {
+      var sn = fiber.stateNode
+      if (sn && typeof sn.props === 'object' && typeof sn.props.onChange === 'function') {
+        var es = sn.props.editorState || (sn.state && sn.state.editorState)
+        if (!es || typeof es.getCurrentContent !== 'function') {
+          fiber = fiber.return; depth++; continue
+        }
+        var EditorState = Object.getPrototypeOf(es).constructor
+        var ContentState = es.getCurrentContent().constructor
+        if (typeof ContentState.createFromText !== 'function') {
+          return 'ERR_NO_CREATE_FROM_TEXT'
+        }
+        var newContent = ContentState.createFromText(text)
+        var newState = EditorState.push(es, newContent, 'insert-characters')
+        sn.props.onChange(newState)
+        log('Draft.js filled at depth ' + depth + ', chars: ' + text.length)
+        return 'OK'
+      }
+      fiber = fiber.return
+      depth++
+    }
+    return 'ERR_NO_ONCHANGE'
+  }
+
+  log('START title=' + (title ? title.length : 0) + ' body=' + (body ? body.length : 0))
+
+  return pollForElement('.public-DraftEditor-content').then(function (editorEl) {
+    log('FOUND .public-DraftEditor-content')
+
+    // Fill body (Draft.js only, no title)
+    if (body) {
+      try {
+        var bodyResult = fillDraftEditor(editorEl as HTMLElement, body)
+        log('BODY: ' + bodyResult)
+      } catch (e: any) {
+        log('BODY_ERROR: ' + (e.message || String(e)))
+      }
+    } else {
+      log('BODY: skipped')
+    }
+
+    // Fill title in separate TEXTAREA
+    var titlePromise = title
+      ? pollForElement('textarea[placeholder*="请输入标题"]').then(function (titleEl) {
+          fillInputNative(titleEl as HTMLTextAreaElement, title)
+          log('TITLE: filled')
+        }).catch(function (e: any) {
+          log('TITLE ERROR: ' + (e.message || String(e)))
+        })
+      : Promise.resolve()
+
+    return titlePromise.then(function () {
+      log('DONE')
+      return 'OK'
+    })
+  }).catch(function (err: any) {
+    log('FATAL: ' + (err && err.message ? err.message : String(err)))
+    return 'ERROR'
+  })
 }
