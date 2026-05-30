@@ -10,6 +10,7 @@ interface InputPanelProps {
   onAiRewrite: (data: { title: string; body: string; tags: string[] }) => void
   onDirectPublish: () => void
   onDirectPublishBilibili: () => void
+  onDirectPublishWechat: () => void
   loading: boolean
 }
 
@@ -23,6 +24,7 @@ export function InputPanel({
   onAiRewrite,
   onDirectPublish,
   onDirectPublishBilibili,
+  onDirectPublishWechat,
   loading
 }: InputPanelProps) {
   const handleRewrite = () => {
@@ -90,6 +92,13 @@ export function InputPanel({
           className="publish-direct-btn"
         >
           🎬 直接发布到B站
+        </button>
+        <button
+          onClick={onDirectPublishWechat}
+          disabled={!body.trim()}
+          className="publish-direct-btn"
+        >
+          📰 直接发布到公众号
         </button>
       </div>
     </div>

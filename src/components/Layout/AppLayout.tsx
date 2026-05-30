@@ -141,6 +141,24 @@ export function AppLayout() {
     await handlePublish("bilibili", draft)
   }, [title, body, tags, handlePublish])
 
+  // Direct publish to WeChat (skip AI transform)
+  const handleDirectPublishWechat = useCallback(async () => {
+    if (!body.trim()) {
+      setError("请先输入正文内容")
+      return
+    }
+
+    const draft: PlatformDraft = {
+      platformKey: "wechat",
+      title: title.trim(),
+      body: body.trim(),
+      tags: tags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
+      metadata: {}
+    }
+
+    await handlePublish("wechat", draft)
+  }, [title, body, tags, handlePublish])
+
   const handleAiRewrite = useCallback(
     async (input: { title: string; body: string; tags: string[] }) => {
       if (!apiKey.trim()) {
@@ -201,6 +219,7 @@ export function AppLayout() {
           onAiRewrite={handleAiRewrite}
           onDirectPublish={handleDirectPublish}
           onDirectPublishBilibili={handleDirectPublishBilibili}
+          onDirectPublishWechat={handleDirectPublishWechat}
           loading={loading}
         />
         <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg} />
