@@ -229,3 +229,74 @@ body {
 }
 .publish-btn:hover { background: #4f46e5; }
 .publish-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+
+/* Settings page */
+.settings-page {
+  padding: 20px;
+  max-width: 480px;
+}
+.settings-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 12px;
+}
+.settings-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+}
+.settings-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+.settings-label:first-child {
+  margin-top: 0;
+}
+.settings-select {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #f9fafb;
+  color: #374151;
+}
+.settings-select:disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+.settings-key-row {
+  display: flex;
+  gap: 8px;
+}
+.settings-input {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: monospace;
+}
+.settings-save-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.settings-save-btn:hover {
+  background: #4f46e5;
+}
+.settings-hint {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 8px;
+}

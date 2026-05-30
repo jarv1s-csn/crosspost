@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react"
 import { TopBar } from "./TopBar"
 import { InputPanel } from "./InputPanel"
 import { PreviewPanel } from "./PreviewPanel"
+import { SettingsPanel } from "./SettingsPanel"
 import { transformAllPlatforms } from "../../ai"
 import type { PlatformDraft, PlatformKey } from "../../types"
 import { saveApiKey, loadApiKey, saveDraft, loadDraft } from "../../storage"
@@ -256,9 +257,7 @@ export function AppLayout() {
           <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg} />
         </div>
       ) : (
-        <div className="panels" style={{ padding: 16 }}>
-          <p style={{ color: "#64748b" }}>设置页面将在下一个 PR 实现。</p>
-        </div>
+        <SettingsPanel />
       )}
     </div>
   )
