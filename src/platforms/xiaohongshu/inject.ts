@@ -10,7 +10,7 @@
  */
 
 export function xiaohongshuInject(title: string, body: string): Promise<string> {
-  var TIMEOUT = 30000
+  var TIMEOUT = 60000
   var INTERVAL = 200
 
   function log(msg: string) {

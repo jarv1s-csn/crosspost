@@ -11,7 +11,7 @@
  * Title is always a plain <input id="title"> on the main page.
  */
 export function wechatInject(title: string, body: string): Promise<string> {
-  var TIMEOUT = 15000
+  var TIMEOUT = 60000
   var INTERVAL = 200
 
   function log(msg: string) {

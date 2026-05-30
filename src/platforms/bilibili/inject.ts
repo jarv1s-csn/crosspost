@@ -8,7 +8,7 @@
  */
 
 export function bilibiliInject(title: string, body: string): Promise<string> {
-  var TIMEOUT = 15000
+  var TIMEOUT = 60000
   var INTERVAL = 200
 
   function log(msg: string) {
