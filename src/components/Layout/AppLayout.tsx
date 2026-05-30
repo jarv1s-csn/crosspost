@@ -5,7 +5,7 @@ import { PreviewPanel } from "./PreviewPanel"
 import { SettingsPanel } from "./SettingsPanel"
 import { transformAllPlatforms } from "../../ai"
 import type { PlatformDraft, PlatformKey } from "../../types"
-import { saveApiKey, loadApiKey, saveDraft, loadDraft } from "../../storage"
+import { saveApiKey, loadApiKey, saveDraft, loadDraft, saveResults, loadResults } from "../../storage"
 import { platformRegistry } from "../../platforms"
 
 export function AppLayout() {
@@ -47,6 +47,10 @@ export function AppLayout() {
           }
           setDraftLoaded(true)
         }).catch(() => setDraftLoaded(true))
+
+        loadResults().then((r) => {
+          if (r) setResults(r as Partial<Record<PlatformKey, PlatformDraft>>)
+        }).catch(() => {})
       } else {
         setApiKeyLoaded(true)
         setDraftLoaded(true)
@@ -149,6 +153,7 @@ export function AppLayout() {
           setError("所有平台改写失败，请检查 API Key 和网络连接")
         } else {
           setResults(data)
+          saveResults(data as Record<string, unknown>).catch(() => {})
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "改写失败")
