@@ -65,16 +65,11 @@ export class XiaohongshuAdapter implements IPlatformAdapter {
         return this.doInject(writeTab.id, draft, steps)
       }
 
-      // Priority 3: Create new tab
-      steps.push("3. 创建新标签页")
-      const tab = await new Promise<chrome.tabs.Tab>((resolve, reject) => {
-        chrome.tabs.create({ url: EDITOR_URL, active: true }, (t) => {
-          if (t) resolve(t)
-          else reject(new Error("无法创建标签页"))
-        })
-      })
-      const tabId = tab.id!
-      steps.push("3. 已创建 #" + tabId + " → 等待加载")
+      // --- Priority 3: Navigate current tab ---
+      steps.push("3. 当前页跳转...")
+      const tabId = currentTab.id!
+      await chrome.tabs.update(tabId, { url: EDITOR_URL })
+      steps.push("3. 已跳转 #" + tabId + " → 等待加载")
 
       return this.doInject(tabId, draft, steps)
     } catch (err) {

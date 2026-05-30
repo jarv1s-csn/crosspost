@@ -40,15 +40,11 @@ export class ZhihuAdapter implements IPlatformAdapter {
         steps.push("1. 复用已有标签页 #" + writeTab.id)
         tabId = writeTab.id
       } else {
-        steps.push("1. 创建新标签页...")
-        const tab = await new Promise<chrome.tabs.Tab>((resolve, reject) => {
-          chrome.tabs.create(
-            { url: "https://zhuanlan.zhihu.com/write", active: true },
-            (t) => { if (t) resolve(t); else reject(new Error("无法创建标签页")) }
-          )
-        })
-        tabId = tab.id!
-        steps.push("1. 已创建标签页 #" + tabId)
+        steps.push("1. 当前页跳转...")
+        const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true })
+        tabId = currentTab.id!
+        await chrome.tabs.update(tabId, { url: "https://zhuanlan.zhihu.com/write", active: true })
+        steps.push("1. 已跳转 #" + tabId)
       }
 
       // Step 2: Wait for page to be ready
