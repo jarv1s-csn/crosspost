@@ -8,10 +8,6 @@ interface InputPanelProps {
   onBodyChange: (v: string) => void
   onTagsChange: (v: string) => void
   onAiRewrite: (data: { title: string; body: string; tags: string[] }) => void
-  onDirectPublish: () => void
-  onDirectPublishBilibili: () => void
-  onDirectPublishWechat: () => void
-  onDirectPublishXiaohongshu: () => void
   loading: boolean
 }
 
@@ -23,10 +19,6 @@ export function InputPanel({
   onBodyChange,
   onTagsChange,
   onAiRewrite,
-  onDirectPublish,
-  onDirectPublishBilibili,
-  onDirectPublishWechat,
-  onDirectPublishXiaohongshu,
   loading
 }: InputPanelProps) {
   const handleRewrite = () => {
@@ -73,45 +65,15 @@ export function InputPanel({
           className="title-input"
         />
       </div>
-      <div className="button-row">
-        <button
-          onClick={handleRewrite}
-          disabled={loading || !body.trim()}
-          className="ai-button"
-        >
-          {loading ? "改写中..." : "✨ AI 改写"}
-        </button>
-        <button
-          onClick={onDirectPublish}
-          disabled={!body.trim()}
-          className="publish-direct-btn"
-        >
-          🚀 直接发布到知乎
-        </button>
-        <button
-          onClick={onDirectPublishBilibili}
-          disabled={!body.trim()}
-          className="publish-direct-btn"
-        >
-          🎬 直接发布到B站
-        </button>
-        <button
-          onClick={onDirectPublishWechat}
-          disabled={!body.trim()}
-          className="publish-direct-btn"
-        >
-          📰 直接发布到公众号
-        </button>
-        <button
-          onClick={onDirectPublishXiaohongshu}
-          disabled={!body.trim()}
-          className="publish-direct-btn"
-        >
-          📕 直接发布到小红书
-        </button>
-      </div>
-      <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
-        💡 公众号/B站 需先在浏览器中登录。内容 2 秒无操作自动保存。
+      <button
+        onClick={handleRewrite}
+        disabled={loading || !body.trim()}
+        className="ai-button"
+      >
+        {loading ? "改写中..." : "✨ AI 改写"}
+      </button>
+      <div style={{ fontSize: 11, color: "#64748b", marginTop: 8 }}>
+        💡 改写后在各平台卡片中点击「发布」即可。内容自动保存。
       </div>
     </div>
   )
