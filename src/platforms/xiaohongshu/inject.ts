@@ -41,64 +41,84 @@ export function xiaohongshuInject(title: string, body: string): Promise<string> 
 
   log("START title=" + (title ? title.length : 0) + " body=" + (body ? body.length : 0))
 
-  // Step 1: Force click "上传图文" button
+  // Step 1: Find entry button — prefer "文字配图" (auto-generates image from text)
+  // Fallback to "上传图文" if not found
   return poll(function () {
     var spans = document.querySelectorAll("span")
+    // Priority 1: "文字配图" — no file dialog, auto image generation
     for (var i = 0; i < spans.length; i++) {
       var s = spans[i] as HTMLElement
       var t = s.textContent || ""
-      if (t.indexOf("上传图文") !== -1) {
-        return s
+      if (t.indexOf("文字配图") !== -1) {
+        return { el: s, type: "文字配图" }
+      }
+    }
+    // Priority 2: "上传图文" — legacy, opens file dialog
+    for (var j = 0; j < spans.length; j++) {
+      var s2 = spans[j] as HTMLElement
+      var t2 = s2.textContent || ""
+      if (t2.indexOf("上传图文") !== -1) {
+        return { el: s2, type: "上传图文" }
       }
     }
     return null
-  }, "upload button")
-    .then(function (btn: HTMLElement) {
-      log("CLICK 上传图文")
-      btn.click()
-      // Wait for editor to open (React SPA transition can be slow)
+  }, "entry button")
+    .then(function (found: any) {
+      log("CLICK " + found.type)
+      found.el.click()
       return new Promise(function (resolve) {
-        setTimeout(function () {
-          resolve(null)
-        }, 4000)
+        setTimeout(function () { resolve(null) }, 3000)
       })
     })
     .then(function () {
       var promises: Promise<any>[] = []
 
-      // Fill title — only inputs with placeholder "标题"
+      // Fill title
       if (title) {
         promises.push(
           poll(function () {
             var inputs = document.querySelectorAll(
-              'input[type="text"], textarea'
+              'input[type="text"], textarea, [contenteditable="true"]'
             )
             for (var i = 0; i < inputs.length; i++) {
-              var inp = inputs[i] as HTMLInputElement
+              var inp = inputs[i] as HTMLElement
               var ph = (inp.getAttribute("placeholder") || "").toLowerCase()
               var id = (inp.id || "").toLowerCase()
+              var text = (inp.textContent || "").trim()
               if (
                 ph.indexOf("标题") !== -1 ||
                 ph.indexOf("title") !== -1 ||
-                id === "title"
+                id === "title" ||
+                text === "填写标题会有更多赞哦～" ||
+                text === "请输入标题"
               ) {
                 return inp
               }
             }
             return null
           }, "title input")
-            .then(function (el: HTMLInputElement) {
-              var desc = Object.getOwnPropertyDescriptor(
-                HTMLInputElement.prototype,
-                "value"
-              )
-              if (desc && desc.set) {
-                desc.set.call(el, title)
+            .then(function (el: any) {
+              var isInput =
+                el.tagName === "INPUT" || el.tagName === "TEXTAREA"
+              if (isInput) {
+                var desc = Object.getOwnPropertyDescriptor(
+                  el.tagName === "TEXTAREA"
+                    ? HTMLTextAreaElement.prototype
+                    : HTMLInputElement.prototype,
+                  "value"
+                )
+                if (desc && desc.set) {
+                  desc.set.call(el, title)
+                } else {
+                  el.value = title
+                }
+                el.dispatchEvent(new Event("input", { bubbles: true }))
+                el.dispatchEvent(new Event("change", { bubbles: true }))
               } else {
-                el.value = title
+                // contenteditable title
+                el.textContent = title
+                el.dispatchEvent(new Event("input", { bubbles: true }))
               }
-              el.dispatchEvent(new Event("input", { bubbles: true }))
-              el.dispatchEvent(new Event("change", { bubbles: true }))
               log("TITLE filled: " + title.length + " chars")
             })
             .catch(function (e: any) {
