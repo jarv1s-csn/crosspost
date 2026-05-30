@@ -22,8 +22,11 @@
   "manifest": {
     "host_permissions": [
       "https://zhuanlan.zhihu.com/*",
-      "https://www.zhihu.com/*"
+      "https://www.zhihu.com/*",
+      "https://member.bilibili.com/*",
+      "https://mp.weixin.qq.com/*",
+      "https://creator.xiaohongshu.com/*"
     ],
-    "permissions": ["scripting"]
+    "permissions": ["scripting", "storage"]
   }
 }
