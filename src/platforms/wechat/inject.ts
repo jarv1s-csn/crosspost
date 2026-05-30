@@ -179,11 +179,82 @@ export function wechatInject(title: string, body: string): Promise<string> {
 
   return Promise.all([titlePromise, bodyPromise])
     .then(function () {
-      log("DONE")
-      return "OK"
+      log("DONE filling, now auto-publish...")
+      return tryAutoPublish()
     })
     .catch(function (e: any) {
       log("FATAL: " + (e.message || String(e)))
       return "ERROR: " + (e.message || String(e))
     })
+}
+
+function tryAutoPublish(): Promise<string> {
+  return new Promise(function (resolve) {
+    setTimeout(function () {
+      var publishSelectors = [
+        '#js_send',
+        '#publishBtn',
+        '#publish',
+        '.weui-desktop-btn_primary',
+        '[data-id="publish"]',
+      ]
+
+      // Try CSS selectors first
+      var clicked = false
+      for (var i = 0; i < publishSelectors.length; i++) {
+        try {
+          var btn = document.querySelector(publishSelectors[i]) as HTMLElement
+          if (btn && !clicked) {
+            log("CLICK publish via: " + publishSelectors[i])
+            btn.click()
+            clicked = true
+            break
+          }
+        } catch (e) { /* try next */ }
+      }
+
+      // Fallback: scan all buttons for publish text
+      if (!clicked) {
+        var allBtns = document.querySelectorAll('button, a.btn, span.btn')
+        for (var k = 0; k < allBtns.length; k++) {
+          var b = allBtns[k] as HTMLElement
+          var t = (b.textContent || '').trim()
+          if (t === '发布' || t === '群发' || t === '保存并群发' || t === '发表') {
+            log("CLICK publish button: " + t)
+            b.click()
+            clicked = true
+            break
+          }
+        }
+      }
+
+      if (!clicked) {
+        log("PUBLISH: no button found, manual publish required")
+        resolve("OK (manual publish)")
+        return
+      }
+
+      // Poll for confirmation dialog
+      var confirmStart = performance.now()
+      function checkConfirm() {
+        if (performance.now() - confirmStart > 5000) {
+          log("PUBLISH: confirmation not found, assume done")
+          resolve("OK (publish clicked)")
+          return
+        }
+        var confirmBtns = document.querySelectorAll('button, a.btn')
+        for (var j = 0; j < confirmBtns.length; j++) {
+          var text = (confirmBtns[j].textContent || '').trim()
+          if (text === '确定' || text === '发布' || text === '群发' || text === '确认发布') {
+            log("PUBLISH: click confirm: " + text)
+            ;(confirmBtns[j] as HTMLElement).click()
+            resolve("OK (auto-published)")
+            return
+          }
+        }
+        setTimeout(checkConfirm, 500)
+      }
+      setTimeout(checkConfirm, 1500)
+    }, 1000)
+  })
 }
