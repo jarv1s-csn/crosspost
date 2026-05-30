@@ -244,6 +244,70 @@ body {
 .publish-btn:hover { background: #4f46e5; }
 .publish-btn:disabled { background: #9ca3af; cursor: not-allowed; }
 
+/* Publish status bar (per-platform) */
+.publish-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.publish-status-publishing {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+}
+.publish-status-published {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+}
+.publish-status-failed {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+.publish-status-msg {
+  flex: 1;
+  line-height: 1.4;
+  word-break: break-all;
+}
+.publish-retry-btn, .publish-tab-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+  border: 1px solid;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  background: white;
+}
+.publish-retry-btn {
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+.publish-retry-btn:hover { background: #fef2f2; }
+.publish-tab-btn {
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+.publish-tab-btn:hover { background: #eff6ff; }
+
+/* Spinner */
+.publish-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #bfdbfe;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: publish-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes publish-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Settings page */
 .settings-page {
   flex: 1;

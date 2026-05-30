@@ -1,11 +1,17 @@
 import React, { useState } from "react"
-import type { PlatformDraft, PlatformKey } from "../../types"
+import type { PlatformDraft, PlatformKey, PublishStatus } from "../../types"
+
+type PublishState = {
+  status: PublishStatus
+  message: string
+  tabId?: number
+}
 
 interface PreviewPanelProps {
   results: Partial<Record<PlatformKey, PlatformDraft>>
   error: string | null
   onPublish: (platform: PlatformKey, draft: PlatformDraft) => void
-  publishMsg?: string | null
+  publishStates: Record<PlatformKey, PublishState>
   rawTitle: string
   rawBody: string
   rawTags: string
@@ -49,16 +55,51 @@ function formatDraft(draft: PlatformDraft): string {
   return `【标题】\n${draft.title}\n\n【正文】\n${draft.body}\n\n【标签】\n${draft.tags.join(" ")}`
 }
 
+function handleSwitchTab(tabId: number | undefined) {
+  if (tabId) {
+    chrome.tabs.update(tabId, { active: true })
+  }
+}
+
+function StatusBar({ state, platform, onRetry }: {
+  state: PublishState
+  platform: PlatformKey
+  onRetry: () => void
+}) {
+  const isActive = state.status !== "idle"
+
+  if (!isActive) return null
+
+  return (
+    <div className={`publish-status-bar publish-status-${state.status}`}>
+      <span className="publish-status-msg">{state.message}</span>
+      {state.status === "failed" && (
+        <button className="publish-retry-btn" onClick={onRetry}>
+          重试
+        </button>
+      )}
+      {state.status === "published" && state.tabId && (
+        <button className="publish-tab-btn" onClick={() => handleSwitchTab(state.tabId)}>
+          切到标签页
+        </button>
+      )}
+      {state.status === "publishing" && <span className="publish-spinner" />}
+    </div>
+  )
+}
+
 function ResultCard({
   platform,
   draft,
   isAI,
-  onPublish
+  onPublish,
+  publishState
 }: {
   platform: PlatformKey
   draft: PlatformDraft
   isAI: boolean
   onPublish: (platform: PlatformKey, draft: PlatformDraft) => void
+  publishState: PublishState
 }) {
   const [label, setLabel] = useState("复制")
 
@@ -75,6 +116,10 @@ function ResultCard({
     )
   }
 
+  function handleRetry() {
+    onPublish(platform, draft)
+  }
+
   return (
     <div className="result-card">
       <div className="result-card-header">
@@ -82,10 +127,13 @@ function ResultCard({
           {PLATFORM_ICONS[platform]} {PLATFORM_NAMES[platform]}
           {isAI && <span className="ai-badge">AI</span>}
         </h3>
-        <button className="publish-btn" onClick={() => onPublish(platform, draft)}>
-          发布
-        </button>
+        {publishState.status === "idle" && (
+          <button className="publish-btn" onClick={() => onPublish(platform, draft)}>
+            发布
+          </button>
+        )}
       </div>
+      <StatusBar state={publishState} platform={platform} onRetry={handleRetry} />
       {draft.title && <div className="result-title">{draft.title}</div>}
       {draft.body && (
         <div className="result-body" style={{ whiteSpace: "pre-wrap" }}>
@@ -110,7 +158,7 @@ export function PreviewPanel({
   results,
   error,
   onPublish,
-  publishMsg,
+  publishStates,
   rawTitle,
   rawBody,
   rawTags
@@ -135,9 +183,6 @@ export function PreviewPanel({
 
   return (
     <div className="panel panel-right">
-      {publishMsg && (
-        <div className="publish-status">{publishMsg}</div>
-      )}
       {!hasContent ? (
         <div className="preview-placeholder">
           输入内容后各平台预览将显示在这里
@@ -150,6 +195,7 @@ export function PreviewPanel({
             draft={draft}
             isAI={isAI}
             onPublish={onPublish}
+            publishState={publishStates[platform]}
           />
         ))
       )}

@@ -128,7 +128,7 @@ export class XiaohongshuAdapter implements IPlatformAdapter {
 
     if (result.success) {
       steps.push("B. 注入完成: " + result.diag)
-      return { success: true, platformPostId: "", url: EDITOR_URL }
+      return { success: true, platformPostId: "", url: EDITOR_URL, tabId: tabId }
     } else {
       return {
         success: false,

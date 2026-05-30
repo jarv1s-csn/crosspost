@@ -139,6 +139,7 @@ export class BilibiliAdapter implements IPlatformAdapter {
         success: true,
         platformPostId: "",
         url: EDITOR_URL,
+        tabId: tabId
       }
     } else {
       console.error("[CrossPost:B站] FAIL", result.error)

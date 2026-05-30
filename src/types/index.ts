@@ -40,6 +40,7 @@ export interface PublishSuccess {
   success: true
   platformPostId: string
   url: string
+  tabId?: number
 }
 
 export interface PublishFailure {
