@@ -246,8 +246,33 @@ body {
 
 /* Settings page */
 .settings-page {
+  flex: 1;
+  overflow-y: auto;
   padding: 20px;
   max-width: 480px;
+}
+
+/* Scrollbar styling */
+.settings-page::-webkit-scrollbar,
+.panel-left::-webkit-scrollbar,
+.panel-right::-webkit-scrollbar {
+  width: 6px;
+}
+.settings-page::-webkit-scrollbar-track,
+.panel-left::-webkit-scrollbar-track,
+.panel-right::-webkit-scrollbar-track {
+  background: transparent;
+}
+.settings-page::-webkit-scrollbar-thumb,
+.panel-left::-webkit-scrollbar-thumb,
+.panel-right::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+.settings-page::-webkit-scrollbar-thumb:hover,
+.panel-left::-webkit-scrollbar-thumb:hover,
+.panel-right::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 .settings-title {
   font-size: 16px;
