@@ -17,11 +17,7 @@ export class ZhihuAdapter implements IPlatformAdapter {
       title: draft.title,
       body: draft.body,
       tags: draft.tags,
-      metadata: {
-        platform: "zhihu",
-        style: "article",
-        titleLimit: 30
-      }
+      metadata: { platform: "zhihu", style: "article", titleLimit: 30 }
     }
   }
 
@@ -29,46 +25,98 @@ export class ZhihuAdapter implements IPlatformAdapter {
     draft: PlatformDraft,
     _credentials: PlatformCredentials
   ): Promise<PublishResult> {
-    const publishUrl = "https://zhuanlan.zhihu.com/write"
+    const steps: string[] = []
 
-    return new Promise((resolve) => {
-      chrome.tabs.create({ url: publishUrl, active: true }, (tab) => {
-        if (!tab?.id) {
-          resolve({ success: false, error: "Failed to create tab" })
-          return
-        }
+    try {
+      // Step 1: Find or create tab
+      steps.push("1. 查找知乎标签页...")
+      const existingTabs = await chrome.tabs.query({ url: "*://zhuanlan.zhihu.com/*" })
+      const writeTab = existingTabs.find(
+        (t) => t.url && (t.url.includes("/write") || t.url.includes("/edit"))
+      )
 
-        const tabId = tab.id
-
-        chrome.tabs.onUpdated.addListener(function listener(updatedTabId, info) {
-          if (updatedTabId !== tabId || info.status !== "complete") return
-
-          chrome.tabs.onUpdated.removeListener(listener)
-
-          chrome.scripting.executeScript(
-            {
-              target: { tabId },
-              func: zhihuInject,
-              args: [draft.title, draft.body],
-              world: "MAIN"
-            },
-            () => {
-              if (chrome.runtime.lastError) {
-                resolve({
-                  success: false,
-                  error: chrome.runtime.lastError.message || "Injection failed"
-                })
-              } else {
-                resolve({
-                  success: true,
-                  platformPostId: "",
-                  url: publishUrl
-                })
-              }
-            }
+      let tabId: number
+      if (writeTab?.id) {
+        steps.push("1. 复用已有标签页 #" + writeTab.id)
+        tabId = writeTab.id
+      } else {
+        steps.push("1. 创建新标签页...")
+        const tab = await new Promise<chrome.tabs.Tab>((resolve, reject) => {
+          chrome.tabs.create(
+            { url: "https://zhuanlan.zhihu.com/write", active: true },
+            (t) => { if (t) resolve(t); else reject(new Error("无法创建标签页")) }
           )
         })
+        tabId = tab.id!
+        steps.push("1. 已创建标签页 #" + tabId)
+      }
+
+      // Step 2: Wait for page to be ready
+      steps.push("2. 等待页面加载...")
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("页面加载超时")), 15000)
+
+        const check = () => {
+          chrome.tabs.get(tabId, (tab) => {
+            if (tab.status === "complete") {
+              clearTimeout(timeout)
+              steps.push("2. 页面加载完成")
+              resolve()
+              return
+            }
+            // Tab might be loading — wait for onUpdated
+            chrome.tabs.onUpdated.addListener(function listener(
+              updatedTabId: number,
+              info: { status?: string }
+            ) {
+              if (updatedTabId !== tabId || info.status !== "complete") return
+              chrome.tabs.onUpdated.removeListener(listener)
+              clearTimeout(timeout)
+              steps.push("2. 页面加载完成")
+              resolve()
+            })
+          })
+        }
+        check()
       })
-    })
+
+      // Step 3: Inject
+      steps.push("3. 注入脚本...")
+      const result = await new Promise<{ success: boolean; diag: string; error?: string }>((resolve) => {
+        chrome.scripting.executeScript(
+          {
+            target: { tabId, frameIds: [0] },
+            func: zhihuInject,
+            args: [draft.title, draft.body],
+            world: "MAIN"
+          },
+          (results) => {
+            const err = chrome.runtime.lastError
+            if (err) {
+              resolve({ success: false, diag: "", error: err.message || String(err) })
+            } else {
+              const diag = results?.[0]?.result || ""
+              resolve({ success: true, diag: String(diag) })
+            }
+          }
+        )
+      })
+
+      if (result.success) {
+        steps.push("3. 注入完成: " + result.diag)
+        return {
+          success: true,
+          platformPostId: "",
+          url: "https://zhuanlan.zhihu.com/write"
+        }
+      } else {
+        return { success: false, error: "注入失败: " + result.error + " (" + steps.join(" → ") + ")" }
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: (err instanceof Error ? err.message : String(err)) + " (" + steps.join(" → ") + ")"
+      }
+    }
   }
 }
