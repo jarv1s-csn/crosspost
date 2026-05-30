@@ -88,6 +88,19 @@ export function AppLayout() {
     }
   }, [title, body, tags, draftLoaded])
 
+  // Save on unmount — fire immediately when popup closes
+  useEffect(() => {
+    return () => {
+      if (title || body || tags) {
+        try {
+          if (typeof chrome !== 'undefined' && chrome.storage) {
+            saveDraft({ title, body, tags, updatedAt: Date.now() })
+          }
+        } catch { /* ignore */ }
+      }
+    }
+  }, [title, body, tags])
+
   const handlePublish = useCallback(
     async (platform: PlatformKey, draft: PlatformDraft) => {
       const names: Record<PlatformKey, string> = { zhihu: "知乎", bilibili: "B站", wechat: "公众号", xiaohongshu: "小红书" }
