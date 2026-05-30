@@ -183,7 +183,8 @@ export function AppLayout() {
             onAiRewrite={handleAiRewrite}
             loading={loading}
           />
-          <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg} />
+          <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg}
+            rawTitle={title} rawBody={body} rawTags={tags} />
         </div>
       ) : (
         <SettingsPanel />
