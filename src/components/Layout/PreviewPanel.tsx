@@ -6,7 +6,12 @@ interface PreviewPanelProps {
   error: string | null
   onPublish: (platform: PlatformKey, draft: PlatformDraft) => void
   publishMsg?: string | null
+  rawTitle: string
+  rawBody: string
+  rawTags: string
 }
+
+const ALL_PLATFORMS: PlatformKey[] = ["zhihu", "bilibili", "wechat", "xiaohongshu"]
 
 const PLATFORM_NAMES: Record<PlatformKey, string> = {
   zhihu: "知乎",
@@ -22,6 +27,24 @@ const PLATFORM_ICONS: Record<PlatformKey, string> = {
   xiaohongshu: "📕"
 }
 
+function buildDraft(
+  platform: PlatformKey,
+  results: Partial<Record<PlatformKey, PlatformDraft>>,
+  rawTitle: string,
+  rawBody: string,
+  rawTags: string
+): PlatformDraft {
+  const ai = results[platform]
+  if (ai) return ai
+  return {
+    platformKey: platform,
+    title: rawTitle.trim(),
+    body: rawBody.trim(),
+    tags: rawTags.split(/[,，]/).map(t => t.trim()).filter(Boolean),
+    metadata: {}
+  }
+}
+
 function formatDraft(draft: PlatformDraft): string {
   return `【标题】\n${draft.title}\n\n【正文】\n${draft.body}\n\n【标签】\n${draft.tags.join(" ")}`
 }
@@ -29,10 +52,12 @@ function formatDraft(draft: PlatformDraft): string {
 function ResultCard({
   platform,
   draft,
+  isAI,
   onPublish
 }: {
   platform: PlatformKey
   draft: PlatformDraft
+  isAI: boolean
   onPublish: (platform: PlatformKey, draft: PlatformDraft) => void
 }) {
   const [label, setLabel] = useState("复制")
@@ -55,22 +80,25 @@ function ResultCard({
       <div className="result-card-header">
         <h3 className="platform-label">
           {PLATFORM_ICONS[platform]} {PLATFORM_NAMES[platform]}
+          {isAI && <span className="ai-badge">AI</span>}
         </h3>
         <button className="publish-btn" onClick={() => onPublish(platform, draft)}>
           发布
         </button>
       </div>
-      <div className="result-title">{draft.title}</div>
-      <div className="result-body" style={{ whiteSpace: "pre-wrap" }}>
-        {draft.body}
-      </div>
-      <div className="result-tags">
-        {draft.tags.map((t, i) => (
-          <span key={i} className="tag">
-            #{t}
-          </span>
-        ))}
-      </div>
+      {draft.title && <div className="result-title">{draft.title}</div>}
+      {draft.body && (
+        <div className="result-body" style={{ whiteSpace: "pre-wrap" }}>
+          {draft.body.length > 200 ? draft.body.slice(0, 200) + "..." : draft.body}
+        </div>
+      )}
+      {draft.tags.length > 0 && (
+        <div className="result-tags">
+          {draft.tags.map((t, i) => (
+            <span key={i} className="tag">#{t}</span>
+          ))}
+        </div>
+      )}
       <button className="copy-btn" onClick={handleCopy}>
         {label}
       </button>
@@ -78,9 +106,15 @@ function ResultCard({
   )
 }
 
-export function PreviewPanel({ results, error, onPublish, publishMsg }: PreviewPanelProps) {
-  const [copyAllLabel, setCopyAllLabel] = useState("一键复制全部")
-
+export function PreviewPanel({
+  results,
+  error,
+  onPublish,
+  publishMsg,
+  rawTitle,
+  rawBody,
+  rawTags
+}: PreviewPanelProps) {
   if (error) {
     return (
       <div className="panel panel-right">
@@ -91,41 +125,34 @@ export function PreviewPanel({ results, error, onPublish, publishMsg }: PreviewP
     )
   }
 
-  const entries = Object.entries(results) as [PlatformKey, PlatformDraft][]
+  const drafts = ALL_PLATFORMS.map(p => ({
+    platform: p,
+    draft: buildDraft(p, results, rawTitle, rawBody, rawTags),
+    isAI: !!results[p]
+  }))
 
-  if (entries.length === 0) {
-    return (
-      <div className="panel panel-right">
-        <div className="preview-placeholder">平台预览将显示在这里</div>
-      </div>
-    )
-  }
-
-  function handleCopyAll() {
-    const combined = entries.map(([, draft]) => formatDraft(draft)).join("\n\n══════════\n\n")
-    navigator.clipboard.writeText(combined).then(
-      () => {
-        setCopyAllLabel("✓ 已复制")
-        setTimeout(() => setCopyAllLabel("一键复制全部"), 2000)
-      },
-      () => {
-        setCopyAllLabel("复制失败")
-        setTimeout(() => setCopyAllLabel("一键复制全部"), 2000)
-      }
-    )
-  }
+  const hasContent = rawTitle.trim() || rawBody.trim()
 
   return (
     <div className="panel panel-right">
       {publishMsg && (
         <div className="publish-status">{publishMsg}</div>
       )}
-      <button className="copy-all-btn" onClick={handleCopyAll}>
-        {copyAllLabel}
-      </button>
-      {entries.map(([key, draft]) => (
-        <ResultCard key={key} platform={key} draft={draft} onPublish={onPublish} />
-      ))}
+      {!hasContent ? (
+        <div className="preview-placeholder">
+          输入内容后各平台预览将显示在这里
+        </div>
+      ) : (
+        drafts.map(({ platform, draft, isAI }) => (
+          <ResultCard
+            key={platform}
+            platform={platform}
+            draft={draft}
+            isAI={isAI}
+            onPublish={onPublish}
+          />
+        ))
+      )}
     </div>
   )
 }
