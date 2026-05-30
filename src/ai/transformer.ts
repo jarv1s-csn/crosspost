@@ -2,6 +2,7 @@ import type { ContentInput, PlatformDraft, PlatformKey } from "../types"
 import { buildZhihuPrompt } from "./prompts/zhihu"
 import { buildBilibiliPrompt } from "./prompts/bilibili"
 import { buildXiaohongshuPrompt } from "./prompts/xiaohongshu"
+import { buildWechatPrompt } from "./prompts/wechat"
 
 const DEEPSEEK_API = "https://api.deepseek.com/v1/chat/completions"
 const TIMEOUT_MS = 30_000
@@ -11,6 +12,7 @@ const PROMPT_BUILDERS: Record<
   PlatformKey,
   (input: ContentInput) => string
 > = {
+  wechat: buildWechatPrompt,
   zhihu: buildZhihuPrompt,
   bilibili: buildBilibiliPrompt,
   xiaohongshu: buildXiaohongshuPrompt
@@ -111,7 +113,7 @@ export async function transformToPlatform(
 export async function transformAllPlatforms(
   input: ContentInput,
   apiKey: string,
-  platforms: PlatformKey[] = ["zhihu", "bilibili", "xiaohongshu"]
+  platforms: PlatformKey[] = ["wechat", "zhihu", "bilibili", "xiaohongshu"]
 ): Promise<Partial<Record<PlatformKey, PlatformDraft>>> {
   const results: Partial<Record<PlatformKey, PlatformDraft>> = {}
 

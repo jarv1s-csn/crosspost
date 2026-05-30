@@ -23,7 +23,8 @@
     "host_permissions": [
       "https://zhuanlan.zhihu.com/*",
       "https://www.zhihu.com/*",
-      "https://member.bilibili.com/*"
+      "https://member.bilibili.com/*",
+      "https://mp.weixin.qq.com/*"
     ],
     "permissions": ["scripting"]
   }
