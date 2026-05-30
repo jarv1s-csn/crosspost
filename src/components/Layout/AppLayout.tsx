@@ -15,6 +15,7 @@ export function AppLayout() {
   const [apiKeyLoaded, setApiKeyLoaded] = useState(false)
   const [publishMsg, setPublishMsg] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<string>("")
+  const [activeTab, setActiveTab] = useState<"publish" | "settings">("publish")
 
   // Editor state
   const [title, setTitle] = useState("")
@@ -231,41 +232,34 @@ export function AppLayout() {
 
   return (
     <div className="app-shell">
-      <TopBar>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-          {saveStatus && <span style={{ color: '#22c55e', fontSize: 11 }}>{saveStatus}</span>}
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="DeepSeek API Key"
-            style={{
-              width: 180,
-              padding: "2px 6px",
-              fontSize: 11,
-              border: "1px solid #6366f1",
-              borderRadius: 4
-            }}
+      <TopBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        saveStatus={saveStatus}
+      />
+      {activeTab === "publish" ? (
+        <div className="panels">
+          <InputPanel
+            title={title}
+            body={body}
+            tags={tags}
+            onTitleChange={setTitle}
+            onBodyChange={setBody}
+            onTagsChange={setTags}
+            onAiRewrite={handleAiRewrite}
+            onDirectPublish={handleDirectPublish}
+            onDirectPublishBilibili={handleDirectPublishBilibili}
+            onDirectPublishWechat={handleDirectPublishWechat}
+            onDirectPublishXiaohongshu={handleDirectPublishXiaohongshu}
+            loading={loading}
           />
+          <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg} />
         </div>
-      </TopBar>
-      <div className="panels">
-        <InputPanel
-          title={title}
-          body={body}
-          tags={tags}
-          onTitleChange={setTitle}
-          onBodyChange={setBody}
-          onTagsChange={setTags}
-          onAiRewrite={handleAiRewrite}
-          onDirectPublish={handleDirectPublish}
-          onDirectPublishBilibili={handleDirectPublishBilibili}
-          onDirectPublishWechat={handleDirectPublishWechat}
-          onDirectPublishXiaohongshu={handleDirectPublishXiaohongshu}
-          loading={loading}
-        />
-        <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg} />
-      </div>
+      ) : (
+        <div className="panels" style={{ padding: 16 }}>
+          <p style={{ color: "#64748b" }}>设置页面将在下一个 PR 实现。</p>
+        </div>
+      )}
     </div>
   )
 }
