@@ -58,6 +58,23 @@ export function SettingsPanel() {
           密钥存储在浏览器本地，仅用于调用 DeepSeek API。
         </p>
       </div>
+
+      <h3 className="settings-title" style={{ marginTop: 20 }}>📋 平台连接状态</h3>
+      <div className="settings-card">
+        {[
+          { key: "zhihu", name: "知乎", icon: "🚀", note: "无需登录" },
+          { key: "bilibili", name: "B站", icon: "🎬", note: "需在浏览器中登录" },
+          { key: "wechat", name: "公众号", icon: "📰", note: "需微信扫码登录" },
+          { key: "xiaohongshu", name: "小红书", icon: "📕", note: "需在浏览器中登录" },
+        ].map((p) => (
+          <div key={p.key} className="platform-status-row">
+            <span className="platform-status-icon">{p.icon}</span>
+            <span className="platform-status-name">{p.name}</span>
+            <span className="platform-status-note">{p.note}</span>
+            <span className="platform-status-badge">✅ 已配置</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

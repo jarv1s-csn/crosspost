@@ -300,3 +300,35 @@ body {
   color: #9ca3af;
   margin-top: 8px;
 }
+
+.platform-status-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.platform-status-row:last-child {
+  border-bottom: none;
+}
+.platform-status-icon {
+  font-size: 16px;
+  margin-right: 8px;
+}
+.platform-status-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  width: 60px;
+}
+.platform-status-note {
+  font-size: 11px;
+  color: #9ca3af;
+  flex: 1;
+}
+.platform-status-badge {
+  font-size: 11px;
+  color: #16a34a;
+  background: #f0fdf4;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
