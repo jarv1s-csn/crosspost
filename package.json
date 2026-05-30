@@ -27,6 +27,6 @@
       "https://mp.weixin.qq.com/*",
       "https://creator.xiaohongshu.com/*"
     ],
-    "permissions": ["scripting"]
+    "permissions": ["scripting", "storage"]
   }
 }
