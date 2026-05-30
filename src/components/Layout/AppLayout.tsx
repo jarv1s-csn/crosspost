@@ -4,9 +4,17 @@ import { InputPanel } from "./InputPanel"
 import { PreviewPanel } from "./PreviewPanel"
 import { SettingsPanel } from "./SettingsPanel"
 import { transformAllPlatforms } from "../../ai"
-import type { PlatformDraft, PlatformKey } from "../../types"
+import type { PlatformDraft, PlatformKey, PublishStatus } from "../../types"
 import { saveApiKey, loadApiKey, saveDraft, loadDraft, saveResults, loadResults } from "../../storage"
 import { platformRegistry } from "../../platforms"
+
+type PublishState = {
+  status: PublishStatus
+  message: string
+  tabId?: number
+}
+
+const IDLE_STATE: PublishState = { status: "idle", message: "" }
 
 export function AppLayout() {
   const [loading, setLoading] = useState(false)
@@ -17,6 +25,12 @@ export function AppLayout() {
   const [publishMsg, setPublishMsg] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<string>("")
   const [activeTab, setActiveTab] = useState<"publish" | "settings">("publish")
+  const [publishStates, setPublishStates] = useState<Record<PlatformKey, PublishState>>({
+    zhihu: IDLE_STATE,
+    bilibili: IDLE_STATE,
+    wechat: IDLE_STATE,
+    xiaohongshu: IDLE_STATE
+  })
 
   // Editor state
   const [title, setTitle] = useState("")
@@ -116,18 +130,25 @@ export function AppLayout() {
   const handlePublish = useCallback(
     async (platform: PlatformKey, draft: PlatformDraft) => {
       const names: Record<PlatformKey, string> = { zhihu: "知乎", bilibili: "B站", wechat: "公众号", xiaohongshu: "小红书" }
-      setPublishMsg(`[${names[platform]}] 发布中...`)
+      setPublishStates(prev => ({ ...prev, [platform]: { status: "publishing", message: "发布中..." } }))
       try {
         const result = await platformRegistry.get(platform).publish(draft, { platform })
-        if ("success" in result && result.success) {
-          setPublishMsg(`✅ 已填入${names[platform]}编辑器，请检查对应标签页`)
-        } else if ("error" in result) {
-          setPublishMsg(`❌ 发布失败: ${result.error}`)
+        if (result.success) {
+          setPublishStates(prev => ({
+            ...prev,
+            [platform]: { status: "published", message: `✅ 已填入${names[platform]}编辑器`, tabId: result.tabId }
+          }))
+        } else {
+          setPublishStates(prev => ({
+            ...prev,
+            [platform]: { status: "failed", message: `❌ ${result.error}` }
+          }))
         }
       } catch (err) {
-        setPublishMsg(`❌ 发布失败: ${err instanceof Error ? err.message : String(err)}`)
-      } finally {
-        setTimeout(() => setPublishMsg(null), 8000)
+        setPublishStates(prev => ({
+          ...prev,
+          [platform]: { status: "failed", message: `❌ ${err instanceof Error ? err.message : String(err)}` }
+        }))
       }
     },
     []
@@ -183,7 +204,7 @@ export function AppLayout() {
             onAiRewrite={handleAiRewrite}
             loading={loading}
           />
-          <PreviewPanel results={results} error={error} onPublish={handlePublish} publishMsg={publishMsg}
+          <PreviewPanel results={results} error={error} onPublish={handlePublish} publishStates={publishStates}
             rawTitle={title} rawBody={body} rawTags={tags} />
         </div>
       ) : (

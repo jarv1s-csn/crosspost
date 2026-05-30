@@ -152,6 +152,7 @@ export class WechatAdapter implements IPlatformAdapter {
         success: true,
         platformPostId: "",
         url: EDITOR_URL,
+        tabId: tabId
       }
     } else {
       console.error("[CrossPost:公众号] FAIL", result.error)

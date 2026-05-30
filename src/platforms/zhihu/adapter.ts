@@ -103,7 +103,8 @@ export class ZhihuAdapter implements IPlatformAdapter {
         return {
           success: true,
           platformPostId: "",
-          url: "https://zhuanlan.zhihu.com/write"
+          url: "https://zhuanlan.zhihu.com/write",
+          tabId: tabId
         }
       } else {
         return { success: false, error: "注入失败: " + result.error + " (" + steps.join(" → ") + ")" }
