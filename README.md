@@ -45,6 +45,7 @@
 | typescript | 5.6.3 | 类型系统 | Apache-2.0 |
 | @types/chrome | ^0.1.42 | Chrome API 类型 | MIT |
 | @types/react | 18.3.12 | React 类型 | MIT |
+| @types/react-dom | 18.3.1 | React DOM 类型 | MIT |
 
 ## 目录结构
 
