@@ -57,16 +57,29 @@ export function wechatInject(title: string, body: string): Promise<string> {
 
   log("START title=" + (title ? title.length : 0) + " body=" + (body ? body.length : 0))
 
-  // Fill title — #title input
+  // Fill title — try contenteditable overlay first, fallback to #title textarea
+  // WeChat has BOTH: a hidden TEXTAREA#title AND a visible .title-editor__input [contenteditable]
   var titlePromise: Promise<void> = title
     ? poll(function () {
         return (
+          document.querySelector('.title-editor__input [contenteditable="true"]') ||
           document.querySelector("#title") ||
           document.querySelector('input[placeholder*="标题"]') ||
           document.querySelector('textarea[placeholder*="标题"]')
         )
-      }, "#title")
+      }, "title element")
         .then(function (el: any) {
+          var isContentEditable = el.getAttribute && el.getAttribute("contenteditable") === "true"
+          if (isContentEditable) {
+            el.focus()
+            el.textContent = title
+            el.dispatchEvent(new Event("input", { bubbles: true }))
+            el.dispatchEvent(new Event("change", { bubbles: true }))
+            el.dispatchEvent(new Event("compositionend", { bubbles: true }))
+            el.blur()
+            log("TITLE filled via contenteditable: " + title.length + " chars")
+            return
+          }
           var isTextarea = el.tagName === "TEXTAREA"
           var proto = isTextarea
             ? HTMLTextAreaElement.prototype
@@ -82,7 +95,7 @@ export function wechatInject(title: string, body: string): Promise<string> {
           el.dispatchEvent(new Event("change", { bubbles: true }))
           el.dispatchEvent(new Event("compositionend", { bubbles: true }))
           el.blur()
-          log("TITLE filled: " + title.length + " chars")
+          log("TITLE filled via " + el.tagName + "#" + (el.id || "").slice(0, 10) + ": " + title.length + " chars")
         })
         .catch(function (e: any) {
           log("TITLE ERROR: " + (e.message || String(e)))
