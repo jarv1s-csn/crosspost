@@ -9,6 +9,9 @@
  */
 
 export function zhihuInject(title: string, body: string): Promise<string> {
+  if ((window as any).__crosspost_injected__) return Promise.resolve('SKIP')
+  ;(window as any).__crosspost_injected__ = true
+
   var TIMEOUT = 60000
   var INTERVAL = 200
 
@@ -85,6 +88,14 @@ export function zhihuInject(title: string, body: string): Promise<string> {
       try {
         var bodyResult = fillDraftEditor(editorEl as HTMLElement, body)
         log('BODY: ' + bodyResult)
+        if (bodyResult === 'ERR_NO_FIBER' || bodyResult === 'ERR_NO_ONCHANGE') {
+          var pasteEvent = new ClipboardEvent('paste', { bubbles: true, cancelable: true })
+          Object.defineProperty(pasteEvent, 'clipboardData', { value: new DataTransfer() })
+          pasteEvent.clipboardData.setData('text/html', body.replace(/\n/g, '<br>'))
+          ;(editorEl as HTMLElement).dispatchEvent(pasteEvent)
+          log('BODY: ClipboardEvent fallback')
+          bodyResult = 'OK_FALLBACK'
+        }
       } catch (e: any) {
         log('BODY_ERROR: ' + (e.message || String(e)))
       }
