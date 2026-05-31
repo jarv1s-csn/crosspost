@@ -3,24 +3,26 @@
 多平台内容发布浏览器扩展。输入一份内容，AI 自动适配各平台风格并一键发布。
 
 > 🏷️ 七牛云 X Engineer 2026 · 题目二
+> 🎬 [Demo 视频](https://www.bilibili.com/video/BV1NMVn6vELu/)
 
 ## 功能概览
 
 | 功能 | 说明 |
 |------|------|
-| 内容输入 | Markdown 编辑器 + 标题 + 标签，内容 2 秒自动保存 |
-| AI 风格改写 | DeepSeek API 将同一内容改写为 4 种平台风格 |
-| 多平台预览 | 知乎/B站/公众号/小红书 四栏 Tab 切换预览 |
-| 一键发布 | 直连各平台编辑器，自动填入并发布 |
-| 智能标签页复用 | 检测已打开的编辑器页面，不重复弹窗 |
+| 内容输入 | 标题 + Markdown 正文 + 标签，2 秒自动保存 + 手动保存按钮 |
+| AI 风格改写 | 支持 DeepSeek / OpenAI / 自定义端点，并行生成四平台适配版本 |
+| 多平台预览 | 知乎/B站/公众号/小红书四张预览卡片，AI 改写标注蓝色标签 |
+| 一键发布 | 各平台独立「发布」按钮，自动导航编辑器并注入内容 |
+| 发布状态追踪 | 每平台卡片独立状态：蓝色发布中 → 绿色成功/红色失败+重试 |
+| 智能标签复用 | 优先复用已打开的编辑器标签页，不弹新窗口 |
 
 ## 支持平台
 
 | 平台 | 入口 | 编辑器技术 | 注入方式 |
 |------|------|-----------|----------|
-| 知乎 | 文章编辑器 | Draft.js (React) | fiber 遍历 → EditorState.push |
-| B站 | 专栏编辑器 | ProseMirror (TipTap) | editor.chain().setContent() |
-| 公众号 | 图文编辑器 | UEditor / contenteditable | UE API → iframe → innerHTML |
+| 知乎 | 文章编辑器 | Draft.js (React) | fiber 遍历 → EditorState.push（fallback ClipboardEvent） |
+| B站 | 专栏编辑器 | ProseMirror (TipTap) | iframe → editor.chain().setContent() |
+| 公众号 | 图文编辑器 | ProseMirror + JSAPI | MP_Editor_JSAPI.invoke（5s deadline fallback） |
 | 小红书 | 写长文 | ProseMirror (TipTap) | editor.chain().setContent() |
 
 ## 技术栈
@@ -28,10 +30,10 @@
 | 技术 | 用途 |
 |------|------|
 | Plasmo 0.90.5 | 浏览器扩展框架 (Manifest V3) |
-| React 18 + TypeScript 5.6 | 弹窗 UI |
-| DeepSeek API (deepseek-chat) | AI 内容改写 |
+| React 18 + TypeScript | 弹窗 UI |
+| DeepSeek / OpenAI / 自定义 | AI 内容改写（三提供商可切换） |
 | chrome.scripting | 页面注入 (MAIN world) |
-| chrome.storage | 草稿自动保存 |
+| chrome.storage | 草稿自动保存 + AI 结果持久化 |
 
 ## 第三方依赖清单
 
