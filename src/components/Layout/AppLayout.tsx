@@ -6,6 +6,7 @@ import { SettingsPanel } from "./SettingsPanel"
 import { transformAllPlatforms } from "../../ai"
 import type { PlatformDraft, PlatformKey, PublishStatus } from "../../types"
 import { saveApiKey, loadApiKey, saveDraft, loadDraft, saveResults, loadResults } from "../../storage"
+import { loadProvider, loadCustomEndpoint, loadCustomModel } from "../../storage"
 import { platformRegistry } from "../../platforms"
 
 type PublishState = {
@@ -52,6 +53,10 @@ export function AppLayout() {
           if (key) setApiKey(key)
           setApiKeyLoaded(true)
         }).catch(() => setApiKeyLoaded(true))
+
+        loadProvider().catch(() => {})
+        loadCustomEndpoint().catch(() => {})
+        loadCustomModel().catch(() => {})
 
         loadDraft().then((draft) => {
           if (draft) {
@@ -157,7 +162,7 @@ export function AppLayout() {
   const handleAiRewrite = useCallback(
     async (input: { title: string; body: string; tags: string[] }) => {
       if (!apiKey.trim()) {
-        setError("请先输入 DeepSeek API Key")
+        setError("请先输入 API Key")
         return
       }
 

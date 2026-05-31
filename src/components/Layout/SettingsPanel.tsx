@@ -1,20 +1,43 @@
 import React, { useState, useEffect } from "react"
-import { saveApiKey, loadApiKey } from "../../storage"
+import {
+  saveApiKey, loadApiKey,
+  saveProvider, loadProvider,
+  saveCustomEndpoint, loadCustomEndpoint,
+  saveCustomModel, loadCustomModel,
+} from "../../storage"
 
 export function SettingsPanel() {
   const [key, setKey] = useState("")
+  const [provider, setProvider] = useState("deepseek")
+  const [customEndpoint, setCustomEndpoint] = useState("")
+  const [customModel, setCustomModel] = useState("")
   const [loaded, setLoaded] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    loadApiKey()
-      .then((k) => { if (k) setKey(k) })
+    Promise.all([
+      loadApiKey(),
+      loadProvider(),
+      loadCustomEndpoint(),
+      loadCustomModel(),
+    ])
+      .then(([k, p, ep, m]) => {
+        if (k) setKey(k)
+        if (p) setProvider(p)
+        if (ep) setCustomEndpoint(ep)
+        if (m) setCustomModel(m)
+      })
       .catch(() => {})
       .finally(() => setLoaded(true))
   }, [])
 
   function handleSave() {
-    saveApiKey(key)
+    Promise.all([
+      saveApiKey(key),
+      saveProvider(provider),
+      saveCustomEndpoint(customEndpoint),
+      saveCustomModel(customModel),
+    ])
       .then(() => {
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)
@@ -30,16 +53,50 @@ export function SettingsPanel() {
 
       <div className="settings-card">
         <label className="settings-label">提供商</label>
-        <select className="settings-select" value="deepseek" disabled>
+        <select
+          className="settings-select"
+          value={provider}
+          onChange={(e) => { setProvider(e.target.value); setSaved(false) }}
+        >
           <option value="deepseek">DeepSeek</option>
-          <option value="openai" disabled>OpenAI（即将支持）</option>
-          <option value="custom" disabled>自定义端点（即将支持）</option>
+          <option value="openai">OpenAI</option>
+          <option value="custom">自定义端点</option>
         </select>
 
-        <label className="settings-label">模型</label>
-        <select className="settings-select" disabled>
-          <option value="deepseek-chat">deepseek-chat</option>
-        </select>
+        {provider === "custom" && (
+          <>
+            <label className="settings-label">自定义端点 URL</label>
+            <input
+              type="text"
+              className="settings-input"
+              value={customEndpoint}
+              onChange={(e) => { setCustomEndpoint(e.target.value); setSaved(false) }}
+              placeholder="https://api.example.com/v1/chat/completions"
+            />
+          </>
+        )}
+
+        {(provider === "custom" || provider === "openai") && (
+          <>
+            <label className="settings-label">模型名称</label>
+            <input
+              type="text"
+              className="settings-input"
+              value={customModel}
+              onChange={(e) => { setCustomModel(e.target.value); setSaved(false) }}
+              placeholder={provider === "openai" ? "gpt-4o-mini" : "your-model-name"}
+            />
+          </>
+        )}
+
+        {provider === "deepseek" && (
+          <>
+            <label className="settings-label">模型</label>
+            <select className="settings-select" disabled>
+              <option value="deepseek-chat">deepseek-chat</option>
+            </select>
+          </>
+        )}
 
         <label className="settings-label">API Key</label>
         <div className="settings-key-row">
@@ -55,7 +112,7 @@ export function SettingsPanel() {
           </button>
         </div>
         <p className="settings-hint">
-          密钥存储在浏览器本地，仅用于调用 DeepSeek API。
+          密钥存储在浏览器本地，仅用于调用 AI API。
         </p>
       </div>
 
