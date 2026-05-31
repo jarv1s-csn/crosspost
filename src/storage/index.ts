@@ -68,9 +68,12 @@ export async function clearDraft(): Promise<void> {
 
 export async function saveResults(data: Record<string, unknown>): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEYS.LAST_RESULTS]: data })
+  await chrome.storage.local.set({ [STORAGE_KEYS.LAST_RESULTS + "_input"]: data._input || "" })
 }
 
-export async function loadResults(): Promise<Record<string, unknown> | null> {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.LAST_RESULTS)
+export async function loadResults(currentInput?: string): Promise<Record<string, unknown> | null> {
+  const result = await chrome.storage.local.get([STORAGE_KEYS.LAST_RESULTS, STORAGE_KEYS.LAST_RESULTS + "_input"])
+  const savedInput = result[STORAGE_KEYS.LAST_RESULTS + "_input"] as string
+  if (currentInput !== undefined && savedInput !== currentInput) return null
   return (result[STORAGE_KEYS.LAST_RESULTS] as Record<string, unknown>) || null
 }

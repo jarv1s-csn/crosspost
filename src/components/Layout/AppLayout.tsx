@@ -63,6 +63,12 @@ export function AppLayout() {
             setTitle(draft.title)
             setBody(draft.body)
             setTags(draft.tags)
+
+            // Restore AI results only if content matches
+            var inputHash = (draft.title + "|||" + draft.body)
+            loadResults(inputHash).then((r) => {
+              if (r) setResults(r as Partial<Record<PlatformKey, PlatformDraft>>)
+            }).catch(() => {})
           }
           setDraftLoaded(true)
         }).catch(() => setDraftLoaded(true))
@@ -187,6 +193,8 @@ export function AppLayout() {
           setError("所有平台改写失败，请检查 API Key 和网络连接")
         } else {
           setResults(data)
+          // Attach input hash so results only restore when content matches
+          ;(data as any)._input = input.title + "|||" + input.body
           saveResults(data as Record<string, unknown>).catch(() => {})
         }
       } catch (err) {
