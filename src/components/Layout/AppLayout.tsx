@@ -132,6 +132,18 @@ export function AppLayout() {
     }
   }, [])
 
+  const handleManualSave = useCallback(() => {
+    const d = draftRef.current
+    if (d.title || d.body || d.tags) {
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage) {
+          saveDraft({ title: d.title, body: d.body, tags: d.tags, updatedAt: Date.now() })
+          setSaveStatus("已保存 " + new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'}))
+        }
+      } catch { /* ignore */ }
+    }
+  }, [])
+
   const handlePublish = useCallback(
     async (platform: PlatformKey, draft: PlatformDraft) => {
       const names: Record<PlatformKey, string> = { zhihu: "知乎", bilibili: "B站", wechat: "公众号", xiaohongshu: "小红书" }
@@ -196,6 +208,7 @@ export function AppLayout() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         saveStatus={saveStatus}
+        onSave={handleManualSave}
       />
       {activeTab === "publish" ? (
         <div className="panels">

@@ -4,9 +4,10 @@ interface TopBarProps {
   activeTab: "publish" | "settings"
   onTabChange: (tab: "publish" | "settings") => void
   saveStatus?: string
+  onSave?: () => void
 }
 
-export function TopBar({ activeTab, onTabChange, saveStatus }: TopBarProps) {
+export function TopBar({ activeTab, onTabChange, saveStatus, onSave }: TopBarProps) {
   return (
     <div className="top-bar">
       <span className="top-bar-title">CrossPost</span>
@@ -28,6 +29,11 @@ export function TopBar({ activeTab, onTabChange, saveStatus }: TopBarProps) {
         <span style={{ color: "#22c55e", fontSize: 11, marginLeft: "auto" }}>
           {saveStatus}
         </span>
+      )}
+      {onSave && (
+        <button className="save-btn" onClick={onSave} style={{ marginLeft: saveStatus ? 8 : "auto" }}>
+          💾 保存
+        </button>
       )}
     </div>
   )
