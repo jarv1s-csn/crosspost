@@ -70,11 +70,33 @@ export class WechatAdapter implements IPlatformAdapter {
         return this.doInject(writeTab.id, draft, steps)
       }
 
-      // --- Priority 3: Navigate current tab ---
-      steps.push("3. 当前页跳转...")
+      // --- Priority 3: Navigate via homepage to get token, then to editor ---
+      steps.push("3. 跳转首页获取token...")
       const tabId = currentTab.id!
-      await chrome.tabs.update(tabId, { url: EDITOR_URL })
-      steps.push("3. 已跳转 #" + tabId + " → 等待加载")
+      await chrome.tabs.update(tabId, { url: "https://mp.weixin.qq.com/" })
+      await this.waitForTabReady(tabId)
+      steps.push("3. 首页加载完成")
+
+      // Extract token from redirected URL
+      const homeTab = await new Promise<chrome.tabs.Tab>((resolve) =>
+        chrome.tabs.get(tabId, (tab) => resolve(tab))
+      )
+      const token = new URLSearchParams(
+        homeTab.url ? homeTab.url.split("?")[1] || "" : ""
+      ).get("token")
+
+      if (!token) {
+        return {
+          success: false,
+          error: "无法获取公众号token，请先在浏览器中登录 mp.weixin.qq.com (" + steps.join(" → ") + ")"
+        }
+      }
+      steps.push("3. 获取到token: " + token.slice(0, 4) + "...")
+
+      // Navigate to editor with token
+      const editorUrl = EDITOR_URL + "&token=" + token
+      await chrome.tabs.update(tabId, { url: editorUrl })
+      steps.push("3. 跳转编辑器 #" + tabId)
 
       return this.doInject(tabId, draft, steps)
     } catch (err) {
