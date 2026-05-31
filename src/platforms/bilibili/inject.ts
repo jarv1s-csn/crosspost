@@ -8,6 +8,9 @@
  */
 
 export function bilibiliInject(title: string, body: string): Promise<string> {
+  if ((window as any).__crosspost_injected__) return Promise.resolve('SKIP')
+  ;(window as any).__crosspost_injected__ = true
+
   var TIMEOUT = 60000
   var INTERVAL = 200
 
