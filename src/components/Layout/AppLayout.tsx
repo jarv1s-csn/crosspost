@@ -66,10 +66,6 @@ export function AppLayout() {
           }
           setDraftLoaded(true)
         }).catch(() => setDraftLoaded(true))
-
-        loadResults().then((r) => {
-          if (r) setResults(r as Partial<Record<PlatformKey, PlatformDraft>>)
-        }).catch(() => {})
       } else {
         setApiKeyLoaded(true)
         setDraftLoaded(true)
