@@ -107,6 +107,18 @@ export class WechatAdapter implements IPlatformAdapter {
     await this.waitForTabReady(tabId)
     steps.push("A. 页面就绪")
 
+    // Check if we got redirected (e.g. to login page)
+    const currentTab = await new Promise<chrome.tabs.Tab>((resolve) =>
+      chrome.tabs.get(tabId, (tab) => resolve(tab))
+    )
+    const currentUrl = currentTab.url || ""
+    if (!currentUrl.includes("appmsg_edit")) {
+      const hint = currentUrl.includes("login") ? "请先在浏览器中登录微信公众号平台 (mp.weixin.qq.com)" : "页面跳转异常: " + currentUrl
+      console.error("[CrossPost:公众号] 未进入编辑器，当前URL:", currentUrl)
+      return { success: false, error: hint + " (" + steps.join(" → ") + ")" }
+    }
+    console.log("[CrossPost:公众号] 确认在编辑器页面:", currentUrl)
+
     steps.push("B. 注入脚本")
     console.log("[CrossPost:公众号] executeScript starting...")
 
