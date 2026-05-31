@@ -91,7 +91,8 @@ export function wechatInject(title: string, body: string): Promise<string> {
 
   // Fill body via official MP_Editor_JSAPI
   // Correct invoke signature: { apiName, apiParam: { content }, sucCb, errCb }
-  // Must wait for mp_editor_get_isready isNew=true before calling mp_editor_set_content
+  // Poll for mp_editor_get_isready isNew=true, but with 5s deadline fallback
+  var GET_READY_DEADLINE = 5000
   var bodyPromise: Promise<void> = body
     ? poll(function () {
         var w = window as any
@@ -104,9 +105,31 @@ export function wechatInject(title: string, body: string): Promise<string> {
           var html = textToHTML(body)
           return new Promise<void>(function (resolve, reject) {
             var start = performance.now()
+            var forced = false
+            function doSetContent() {
+              jsapi.invoke({
+                apiName: "mp_editor_set_content",
+                apiParam: { content: html },
+                sucCb: function () {
+                  log("BODY filled via JSAPI: " + body.length + " chars → " + html.length + " HTML" + (forced ? " (forced after deadline)" : ""))
+                  resolve()
+                },
+                errCb: function (err: any) {
+                  log("BODY set_content errCb: " + JSON.stringify(err))
+                  reject(new Error("mp_editor_set_content failed: " + JSON.stringify(err)))
+                },
+              })
+            }
             function trySet() {
               if (performance.now() - start >= TIMEOUT) {
                 reject(new Error("mp_editor_set_content TIMEOUT"))
+                return
+              }
+              // 5s deadline: skip isNew check, call set_content directly
+              if (!forced && performance.now() - start >= GET_READY_DEADLINE) {
+                forced = true
+                log("EDITOR get_isready deadline exceeded, forcing set_content")
+                doSetContent()
                 return
               }
               jsapi.invoke({
@@ -117,18 +140,7 @@ export function wechatInject(title: string, body: string): Promise<string> {
                     setTimeout(trySet, INTERVAL)
                     return
                   }
-                  jsapi.invoke({
-                    apiName: "mp_editor_set_content",
-                    apiParam: { content: html },
-                    sucCb: function () {
-                      log("BODY filled via JSAPI: " + body.length + " chars → " + html.length + " HTML")
-                      resolve()
-                    },
-                    errCb: function (err: any) {
-                      log("BODY set_content errCb: " + JSON.stringify(err))
-                      reject(new Error("mp_editor_set_content failed: " + JSON.stringify(err)))
-                    },
-                  })
+                  doSetContent()
                 },
                 errCb: function (err: any) {
                   log("mp_editor_get_isready errCb: " + JSON.stringify(err))
